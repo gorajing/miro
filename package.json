@@ -6,6 +6,16 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1",
     "probe": "node --env-file=.env scripts/probe.mjs"
+  },
+  "dependencies": {
+    "pixi.js": "^8.16.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vite": "^5.4.11"
   }
 }
