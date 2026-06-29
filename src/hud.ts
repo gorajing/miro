@@ -20,7 +20,7 @@ export function createHud(host: HTMLElement): Hud {
       <dl>
         <dt>time to reaction</dt><dd class="big" id="h-ttr">—</dd>
         <dt>tokens / sec</dt><dd id="h-tps">—</dd>
-        <dt>image tokens</dt><dd id="h-img">—</dd>
+        <dt>prompt tokens</dt><dd id="h-img">—</dd>
         <dt>requests</dt><dd id="h-req">—</dd>
       </dl>
       <div class="tier">swarm tier: <b id="h-tier">none</b></div>

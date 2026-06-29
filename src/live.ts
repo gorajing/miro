@@ -85,46 +85,77 @@ function setBusy(busy: boolean): void {
   triggerBtn.textContent = busy ? 'thinking…' : 'Trigger now';
 }
 
+async function processReaction(frame: string, hint: string, manual: boolean): Promise<void> {
+  const retina = await runRetina(frame, hint ? { terminalText: hint } : undefined);
+  const s = retina.data;
+
+  let tier = maxTier(s.recommended_swarm_tier, floorFromText(hint));
+  if (manual) tier = maxTier(tier, 'sniff');
+
+  let swarm: SwarmOutput = { results: {}, metrics: { calls: 0, maxTotalTime: 0, tps: 0 } };
+  if (tier !== 'none') swarm = await runSwarm(s, tier);
+
+  const prevConcern = state.openConcern;
+  state = reduce(state, s, swarm);
+  const resolved = prevConcern !== null && state.openConcern === null && s.event_type === 'green_test';
+  memory = recordReaction(memory, s.event_type, { resolvedConcern: resolved, concern: state.openConcern });
+  saveMem(memory);
+  state = { ...state, meters: { ...state.meters, bond: memory.bond } };
+  miro.setState({ pose: state.pose, attention: state.meters.attention, trust: state.meters.trust, bond: state.meters.bond });
+  setBubble(state.bubble, state.pose);
+
+  hud.update({
+    timeToReaction: retina.metrics.totalTime + swarm.metrics.maxTotalTime,
+    tps: Math.max(retina.metrics.tps, swarm.metrics.tps),
+    imageTokens: retina.metrics.imageTokens || retina.metrics.promptTokens,
+    requests: 1 + swarm.metrics.calls,
+    tier,
+    meters: state.meters,
+  });
+  hud.log(`${s.event_type} · ${s.app} · ${s.what_changed} (${tier})`);
+}
+
 async function react(manual: boolean): Promise<void> {
   if (running) return;
   if (!isCapturing()) { hud.log('share your screen first', true); return; }
   running = true;
   setBusy(true);
   try {
-    const frame = grabFrame();
-    const hint = termHint.value.trim();
-    const retina = await runRetina(frame, hint ? { terminalText: hint } : undefined);
-    const s = retina.data;
-
-    let tier = maxTier(s.recommended_swarm_tier, floorFromText(hint));
-    if (manual) tier = maxTier(tier, 'sniff');
-
-    let swarm: SwarmOutput = { results: {}, metrics: { calls: 0, maxTotalTime: 0, tps: 0 } };
-    if (tier !== 'none') swarm = await runSwarm(s, tier);
-
-    const prevConcern = state.openConcern;
-    state = reduce(state, s, swarm);
-    const resolved = prevConcern !== null && state.openConcern === null && s.event_type === 'green_test';
-    memory = recordReaction(memory, s.event_type, { resolvedConcern: resolved, concern: state.openConcern });
-    saveMem(memory);
-    state = { ...state, meters: { ...state.meters, bond: memory.bond } };
-    miro.setState({ pose: state.pose, attention: state.meters.attention, trust: state.meters.trust, bond: state.meters.bond });
-    setBubble(state.bubble, state.pose);
-
-    hud.update({
-      timeToReaction: retina.metrics.totalTime + swarm.metrics.maxTotalTime,
-      tps: Math.max(retina.metrics.tps, swarm.metrics.tps),
-      imageTokens: retina.metrics.imageTokens || retina.metrics.promptTokens,
-      requests: 1 + swarm.metrics.calls,
-      tier,
-      meters: state.meters,
-    });
-    hud.log(`${s.event_type} · ${s.app} · ${s.what_changed} (${tier})`);
+    await processReaction(grabFrame(), termHint.value.trim(), manual);
   } catch (err) {
     hud.log(err instanceof Error ? err.message : String(err), true);
   } finally {
     running = false;
     setBusy(false);
+  }
+}
+
+// Self-test: run the full loop on a synthetic frame — no screen-share picker needed.
+function makeSyntheticFrame(text: string): string {
+  const c = document.createElement('canvas');
+  c.width = 900; c.height = 560;
+  const ctx = c.getContext('2d');
+  if (!ctx) return '';
+  ctx.fillStyle = '#0d0f14'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.font = '18px ui-monospace, monospace';
+  text.split('\n').forEach((ln, i) => {
+    ctx.fillStyle = /FAIL|ERROR|assert|✗/i.test(ln) ? '#f25d4a' : '#cdd6e0';
+    ctx.fillText(ln.slice(0, 80), 24, 48 + i * 28);
+  });
+  return c.toDataURL('image/jpeg', 0.85);
+}
+
+async function selfReact(terminalText: string): Promise<void> {
+  if (running) return;
+  running = true;
+  triggerBtn.textContent = 'thinking…';
+  try {
+    await processReaction(makeSyntheticFrame(terminalText), terminalText, true);
+  } catch (err) {
+    hud.log(err instanceof Error ? err.message : String(err), true);
+  } finally {
+    running = false;
+    triggerBtn.textContent = 'Trigger now';
   }
 }
 
@@ -170,3 +201,19 @@ window.setInterval(() => {
 }, 2000);
 
 hud.log('ready — share a screen to begin.');
+
+// Self-test buttons (visible with ?selftest) — see the event reactions without sharing a screen.
+if (new URLSearchParams(location.search).has('selftest')) {
+  const controls = pick<HTMLDivElement>('.controls');
+  const RED = 'tests/test_auth.py::test_login FAILED\nE   assert 401 == 200\n=== 1 failed, 11 passed ===';
+  const GREEN = 'PASS  src/auth.test.ts\nTests: 24 passed, 24 total\nDone in 1.9s.';
+  const addSim = (label: string, hint: string): void => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.addEventListener('click', () => { void selfReact(hint); });
+    controls.appendChild(b);
+  };
+  addSim('Sim: red test', RED);
+  addSim('Sim: tests pass', GREEN);
+  hud.log('self-test mode: use the Sim buttons (no screen share needed).');
+}
