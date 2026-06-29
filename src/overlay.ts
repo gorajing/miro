@@ -1,9 +1,11 @@
 import { Application } from 'pixi.js';
 import { MiroView, createDefaultMiroState, type MiroPose, type MiroDirection } from './miroArt';
-import { startCapture, startBuffering, isCapturing, grabSequence, hasChanged } from './perception/capture';
+import { startCapture, startBuffering, isCapturing, grabSequence, hasChanged, setSelfMask } from './perception/capture';
 import { runRetina } from './brain/retina';
 import { runSwarm } from './brain/instincts';
 import { reduce, initialState } from './state/reducer';
+import { signature, briefOf, isNewEvent, isEventful } from './state/belief';
+import { awake, settle } from './state/drowsiness';
 import { hydrate, recordReaction, composeGreeting } from './state/memory';
 import { recordMoment, composeRecap } from './state/session';
 import type { EventType, Receipt, Situation, SwarmOutput } from './shared/types';
@@ -81,6 +83,7 @@ memory = { ...memory, sessions: memory.sessions + 1, lastSeenISO: new Date().toI
 localStorage.setItem(MEM_KEY, JSON.stringify(memory));
 let state = { ...initialState(), openConcern: memory.openConcern, meters: { ...initialState().meters, bond: memory.bond } };
 let running = false;
+let runningSince = 0; // when the in-flight read started — for the stuck-state watchdog
 let lastReactAt = 0; // cooldown anchor
 let backoffUntil = 0; // set after a failed read, to stop hammering a hiccuping API
 let facing: MiroDirection = 'front';
@@ -91,6 +94,16 @@ let pressing = false; // mousedown on her, not yet moved enough to be a drag
 let pressX = 0;
 let pressY = 0;
 let lastReceipt: Receipt | null = null;
+let lastSig: string | null = null; // signature of the situation she last ACTED on — the edge-trigger latch
+let lastSeenBrief: string | null = null; // her last reading, fed back to Retina so she judges novelty herself
+let drowse = awake(performance.now()); // sleep-when-calm: she naps when the screen's been quiet
+
+/** Rouse her instantly (pet / hover / ⌘⇧L / a fresh event): reset the calm clock, open her eyes. */
+function rouse(): void {
+  const wasAsleep = drowse.asleep;
+  drowse = awake(performance.now());
+  if (wasAsleep) setPose('idle');
+}
 // Miro's real on-screen rect (from getLocalBounds), refreshed each frame.
 let petLeft = miro.x;
 let petTop = miro.y;
@@ -247,8 +260,11 @@ app.ticker.add((t) => {
   if (!dragging) {
     const now = performance.now();
     const goalX = intent.goal.x * window.innerWidth;
-    const desiredX = clamp(goalX - b.width / 2 - b.x, minX, maxX);
-    const desiredY = clamp(intent.goal.y * window.innerHeight - b.height - b.y, minY, maxY);
+    const goalY = intent.goal.y * window.innerHeight;
+    // Events: stand BESIDE the spot (on the roomier side) + a bit above, so she never covers it.
+    const side = intent.kind === 'rest' ? 0 : (goalX < window.innerWidth / 2 ? 1 : -1);
+    const desiredX = clamp(goalX + side * (b.width + 28) - b.width / 2 - b.x, minX, maxX);
+    const desiredY = clamp(goalY - (intent.kind === 'rest' ? 0 : b.height * 0.4) - b.height - b.y, minY, maxY);
 
     if (phase === 'orient') {
       // Turn toward the goal and hold the "noticing" pose for a beat, then set off.
@@ -271,6 +287,11 @@ app.ticker.add((t) => {
       } else {
         phase = 'dwell';
         phaseStart = now;
+        // She stopped BESIDE the spot — turn to face it so she points at what she found, not away.
+        if (intent.kind !== 'rest') {
+          const faceFocus: MiroDirection = goalX > centerX ? 'right' : 'left';
+          if (faceFocus !== facing) { facing = faceFocus; miro.setState({ direction: facing }); }
+        }
         setPose(intent.arrivePose);
         if (intent.bubble) setBubble(intent.bubble, intent.arrivePose);
       }
@@ -287,6 +308,13 @@ app.ticker.add((t) => {
         phaseStart = now;
       }
     }
+
+    // Sleep-when-calm: resting + quiet for SLEEP_AFTER_MS → she curls up; events / petting / ⌘⇧L wake her.
+    const calm = intent.kind === 'rest' && phase === 'dwell' && !running;
+    const wasAsleep = drowse.asleep;
+    drowse = settle(drowse, now, calm);
+    if (drowse.asleep && !wasAsleep) { setPose('asleep'); setBubble('', 'asleep'); }
+    else if (!drowse.asleep && wasAsleep && intent.kind === 'rest') setPose('idle');
   }
 
   // Keep her whole body on-screen (drag, resize, pose changes).
@@ -309,6 +337,7 @@ app.ticker.add((t) => {
   bubbleEl.style.top = `${by}px`;
 
   // Receipt card: sits below her, flips above when there's no room, clamped on-screen.
+  let cardRect: { x: number; y: number; w: number; h: number } | null = null;
   if (cardEl.classList.contains('show')) {
     const cw = cardEl.offsetWidth || 200;
     const ch = cardEl.offsetHeight || 64;
@@ -318,18 +347,44 @@ app.ticker.add((t) => {
     cy = clamp(cy, 6, window.innerHeight - ch - 6);
     cardEl.style.left = `${cx}px`;
     cardEl.style.top = `${cy}px`;
+    cardRect = { x: cx, y: cy, w: cw, h: ch };
   }
+
+  // She must never perceive her OWN pixels — mask her sprite + bubble + card out of the capture.
+  let mL = petLeft, mT = petTop, mR = petLeft + petW, mB = petTop + petH;
+  if (bubbleEl.classList.contains('show')) {
+    mL = Math.min(mL, bx); mT = Math.min(mT, by); mR = Math.max(mR, bx + bw); mB = Math.max(mB, by + bh);
+  }
+  if (cardRect) {
+    mL = Math.min(mL, cardRect.x); mT = Math.min(mT, cardRect.y);
+    mR = Math.max(mR, cardRect.x + cardRect.w); mB = Math.max(mB, cardRect.y + cardRect.h);
+  }
+  setSelfMask({ x: mL, y: mT, w: mR - mL, h: mB - mT });
 });
 
-async function react(): Promise<void> {
+/** Edge-triggered: she ACTS only on a genuinely NEW event, not on the continued PRESENCE of one.
+ *  A failure sitting in the terminal is read every poll, but she reacts once — repeats settle.
+ *  `forced` (⌘⇧L) bypasses the repeat-latch so you can always re-cue her. */
+async function react(forced = false): Promise<void> {
   if (running || !isCapturing()) return;
   running = true;
+  runningSince = performance.now();
   lastReactAt = performance.now();
   try {
     const frames = grabSequence(3);
-    const retina = await runRetina(frames, undefined, 'cerebras');
+    const retina = await runRetina(frames, lastSeenBrief ? { lastSeen: lastSeenBrief } : undefined, 'cerebras');
     const s = retina.data;
-    console.log('[miro]', s.event_type, '·', s.app, '·', s.what_changed, '·', `sig ${s.signal_strength.toFixed(2)}`, '·', `${(retina.metrics.totalTime * 1000).toFixed(0)}ms`);
+    const newOne = isNewEvent(s, lastSig);
+    console.log('[miro]', s.event_type, '·', s.app, '·', s.what_changed, '·', `sig ${s.signal_strength.toFixed(2)}`,
+      '·', `${(retina.metrics.totalTime * 1000).toFixed(0)}ms`, '·', newOne ? 'NEW' : (isEventful(s) ? 'repeat→calm' : 'calm'));
+
+    lastSeenBrief = briefOf(s); // remember what she's looking at now, for the next read's novelty check
+
+    // The latch: nothing new → stay calm. Her current intent decays to rest on its own ttl.
+    // (forced ⌘⇧L still re-cues an eventful read even if it repeats.)
+    if (!newOne && !(forced && isEventful(s))) return;
+    lastSig = signature(s);
+    drowse = awake(performance.now()); // a real event wakes her — reset the calm clock (pose flows via the intent)
 
     let swarm: SwarmOutput = { results: {}, metrics: { calls: 0, maxTotalTime: 0, tps: 0 } };
     if (s.recommended_swarm_tier !== 'none') swarm = await runSwarm(s, s.recommended_swarm_tier, 'cerebras', state.openConcern);
@@ -358,8 +413,14 @@ async function react(): Promise<void> {
 // Ambient watch: only spends tokens when the screen changed (Curl Up), with a cooldown
 // (at most one reaction per ~4s — RPM-safe, less twitch) and a backoff after failures.
 const MIN_GAP_MS = 3000;
+const STUCK_MS = 15000; // a read should never take this long — if it does, force-unstick so she can never freeze
 window.setInterval(() => {
   const now = performance.now();
+  if (running && now - runningSince > STUCK_MS) { // watchdog: self-heal a wedged read (hung body, etc.)
+    console.warn('[miro] read wedged — force-unsticking');
+    running = false;
+    backoffUntil = now + 2000;
+  }
   if (!running && isCapturing() && now > backoffUntil && now - lastReactAt > MIN_GAP_MS && hasChanged()) void react();
 }, 1500);
 
@@ -374,6 +435,7 @@ window.addEventListener('mousedown', (e) => {
     pressY = e.clientY;
     dragOffX = e.clientX - miro.x;
     dragOffY = e.clientY - miro.y;
+    rouse(); // petting wakes her
   }
 });
 
@@ -388,6 +450,7 @@ window.addEventListener('mousemove', (e) => {
   if (over !== interactive) {
     interactive = over;
     window.miroOverlay?.setInteractive(over);
+    if (over) rouse(); // cursor lands on her → she notices you and wakes
   }
 });
 
@@ -415,8 +478,19 @@ window.miroOverlay?.onRecap(() => {
   else void showRecap();
 });
 
-// Force an immediate look — demo cue, bypasses the change-gate + cooldown.
-window.miroOverlay?.onLook(() => { void react(); });
+// ⌘⇧L = hard "wake up + look": clears backoff, unsticks a wedged read, re-acquires capture if it
+// dropped, then forces a fresh read past the latch. The demo lifeline whenever she ever wedges.
+async function forceLook(): Promise<void> {
+  const now = performance.now();
+  backoffUntil = 0;
+  rouse(); // ⌘⇧L always wakes her, even if the screen is calm
+  if (running && now - runningSince > 4000) running = false; // unstick a stale in-flight read
+  if (!isCapturing()) {
+    try { await startCapture(); startBuffering(); } catch { setBubble('let me watch your screen…', 'idle'); return; }
+  }
+  void react(true);
+}
+window.miroOverlay?.onLook(() => { void forceLook(); });
 
 // Start watching immediately (Electron auto-grants; no picker).
 (async () => {
