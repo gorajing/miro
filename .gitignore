@@ -19,3 +19,10 @@ npm-debug.log*
 
 # runtime/test memory files
 .miro-memory*.json
+
+# demo media (large; not in git)
+demo/footage/
+demo/out/
+*.mp4
+*.webm
+*.mov

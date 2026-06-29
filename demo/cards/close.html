@@ -1,0 +1,39 @@
+<!doctype html><html><meta charset="utf8"><!--
+  Miro close card — 1280x720. Record: node record-animation.js "file:///abs/close.html" 6000 ./rec
+  Every number here traces to CLAIMS.md.
+--><style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:720px;overflow:hidden}
+  body{background:radial-gradient(120% 90% at 50% 25%,#221911 0%,#14110d 70%);color:#f6e8cf;
+    font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{width:1280px;height:720px;padding:64px 80px;display:flex;flex-direction:column}
+  .name{font-size:40px;font-weight:800;letter-spacing:-1px}
+  .name b{color:#e8b978}
+  .stats{flex:1;display:flex;align-items:center;justify-content:center;gap:64px}
+  .stat{text-align:center}
+  .num{font-size:84px;font-weight:800;letter-spacing:-2px;color:#72d8ff;line-height:1}
+  .lbl{font-size:21px;color:#b9a888;font-weight:600;margin-top:10px}
+  .tags{font-size:26px;font-weight:700;color:#f6e8cf;text-align:center}
+  .repo{font-size:20px;color:#b9a888;text-align:center;margin-top:10px}
+  .reveal{opacity:0;transform:translateY(16px);animation:up .55s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes up{to{opacity:1;transform:none}}
+</style><body>
+  <div class="wrap">
+    <div class="name reveal" style="animation-delay:.1s">🐶 <b>Miro</b> — Gemma 4 31B on Cerebras</div>
+    <div class="stats">
+      <div class="stat reveal" style="animation-delay:.4s"><div class="num">~<span data-to="250">0</span>ms</div><div class="lbl">sees &amp; reacts</div></div>
+      <div class="stat reveal" style="animation-delay:.7s"><div class="num"><span data-to="6">0</span></div><div class="lbl">coordinated agents</div></div>
+      <div class="stat reveal" style="animation-delay:1.0s"><div class="num">3</div><div class="lbl">modalities: text · images · video</div></div>
+    </div>
+    <div class="tags reveal" style="animation-delay:1.4s">@Cerebras · @googlegemma · #Gemma</div>
+    <div class="repo reveal" style="animation-delay:1.7s">github.com/gorajing/miro</div>
+  </div>
+  <script>
+    function countUp(el){const to=+el.dataset.to,dur=850,s=performance.now();
+      (function t(n){const p=Math.min((n-s)/dur,1),e=1-Math.pow(1-p,3);
+        el.textContent=Math.round(to*e);if(p<1)requestAnimationFrame(t);})(performance.now());}
+    document.querySelectorAll('[data-to]').forEach(el=>{
+      const d=parseFloat(getComputedStyle(el.closest('.reveal')||el).animationDelay)||0;
+      setTimeout(()=>countUp(el), d*1000+120);});
+  </script>
+</body></html>
