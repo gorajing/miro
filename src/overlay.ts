@@ -223,8 +223,7 @@ async function showRecap(): Promise<void> {
   receiptSticky = true;
   if (receiptTimer) window.clearTimeout(receiptTimer);
   receiptTimer = window.setTimeout(() => { cardEl.classList.remove('show'); receiptSticky = false; }, 20000); // safety: never stuck
-  setPose('proud');
-  setBubble('here is our day so far', 'proud');
+  setBubble('here is our day so far', 'proud'); // bubble color only — do NOT force her body pose (that caused the stuck bounce)
   renderRecap(await composeRecap('cerebras'));
 }
 
