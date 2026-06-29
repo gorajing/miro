@@ -4,7 +4,8 @@ import type { Situation } from '../shared/types';
 
 const SYSTEM = [
   "You are Miro's Retina — the single 'eyes' of a watchful desktop pet.",
-  'Look at the screenshot (and any terminal text) and report ONE factual reading of what is happening.',
+  'You may receive a SINGLE screenshot or a SEQUENCE of frames (oldest→newest), plus any terminal text; report ONE factual reading of what is happening.',
+  'When given a sequence, focus on what CHANGED and what just happened in the newest frame.',
   'You are good at gist, not pixel precision: identify failures, successes, risky commands, and stale/noisy errors.',
   'event_type: red_test (a test/build just failed), green_test (a previously-failing thing now passes),',
   'risky_command (a destructive/irreversible command is staged), stale_error (an old/cached error, not current),',
@@ -15,20 +16,26 @@ const SYSTEM = [
 ].join(' ');
 
 export async function runRetina(
-  frameDataUri: string,
+  frames: string | string[],
   hints?: { terminalText?: string; scenario?: string },
   provider: Provider = 'cerebras',
 ): Promise<{ data: Situation; metrics: Metrics }> {
-  const parts: string[] = ['Read this screen for the pet.'];
+  const list = (Array.isArray(frames) ? frames : [frames]).slice(0, 5); // Cerebras: max 5 images/request
+  const temporal = list.length > 1;
+
+  const parts: string[] = [
+    temporal
+      ? `These are ${list.length} sequential screenshots ~1s apart (oldest first, newest last). Report what CHANGED across them — especially anything that JUST happened in the newest frame.`
+      : 'Read this screen for the pet.',
+  ];
   if (hints?.terminalText) parts.push(`Terminal text:\n${hints.terminalText.slice(0, 2000)}`);
   if (hints?.scenario) parts.push(`Scenario hint: ${hints.scenario}`);
 
+  const imageParts = list.map((url) => ({ type: 'image_url' as const, image_url: { url } }));
+
   return chatJSON<Situation>({
     system: SYSTEM,
-    user: [
-      { type: 'text', text: parts.join('\n\n') },
-      { type: 'image_url', image_url: { url: frameDataUri } },
-    ],
+    user: [{ type: 'text', text: parts.join('\n\n') }, ...imageParts],
     schema: RETINA_SCHEMA,
     schemaName: 'situation',
     maxTokens: 400,

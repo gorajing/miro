@@ -2,7 +2,7 @@ import { Application } from 'pixi.js';
 import { MiroView, createDefaultMiroState, type MiroPose } from './miroArt';
 import './app.css';
 
-import { startCapture, stopCapture, isCapturing, grabFrame, hasChanged } from './perception/capture';
+import { startCapture, stopCapture, isCapturing, grabSequence, startBuffering, hasChanged } from './perception/capture';
 import { runRetina } from './brain/retina';
 import { runSwarm } from './brain/instincts';
 import { reduce, initialState } from './state/reducer';
@@ -85,8 +85,8 @@ function setBusy(busy: boolean): void {
   triggerBtn.textContent = busy ? 'thinking…' : 'Trigger now';
 }
 
-async function processReaction(frame: string, hint: string, manual: boolean): Promise<void> {
-  const retina = await runRetina(frame, hint ? { terminalText: hint } : undefined);
+async function processReaction(frames: string | string[], hint: string, manual: boolean): Promise<void> {
+  const retina = await runRetina(frames, hint ? { terminalText: hint } : undefined);
   const s = retina.data;
 
   let tier = maxTier(s.recommended_swarm_tier, floorFromText(hint));
@@ -122,7 +122,7 @@ async function react(manual: boolean): Promise<void> {
   running = true;
   setBusy(true);
   try {
-    await processReaction(grabFrame(), termHint.value.trim(), manual);
+    await processReaction(grabSequence(3), termHint.value.trim(), manual);
   } catch (err) {
     hud.log(err instanceof Error ? err.message : String(err), true);
   } finally {
@@ -163,6 +163,7 @@ async function selfReact(terminalText: string): Promise<void> {
 shareBtn.addEventListener('click', async () => {
   try {
     await startCapture();
+    startBuffering();
     shareBtn.disabled = true;
     stopBtn.disabled = false;
     triggerBtn.disabled = false;

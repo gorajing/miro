@@ -5,6 +5,8 @@
 let stream: MediaStream | null = null;
 let video: HTMLVideoElement | null = null;
 let lastFingerprint: number[] | null = null;
+let frameBuffer: string[] = [];
+let bufferTimer: number | null = null;
 
 export function isCapturing(): boolean {
   return stream !== null;
@@ -24,6 +26,7 @@ export async function startCapture(): Promise<void> {
 }
 
 export function stopCapture(): void {
+  stopBuffering();
   stream?.getTracks().forEach((t) => t.stop());
   stream = null;
   video = null;
@@ -49,6 +52,30 @@ function drawToCanvas(maxW: number): HTMLCanvasElement {
 /** Grab the current frame as a base64 JPEG data URI (Cerebras downscales to ~280 tokens anyway). */
 export function grabFrame(maxW = 1024): string {
   return drawToCanvas(maxW).toDataURL('image/jpeg', 0.7);
+}
+
+/** Keep a rolling buffer of recent frames so Retina can reason over a SEQUENCE (temporal / "video"). */
+export function startBuffering(intervalMs = 1200, maxW = 768): void {
+  stopBuffering();
+  bufferTimer = window.setInterval(() => {
+    if (!video) return;
+    try {
+      frameBuffer.push(grabFrame(maxW));
+      if (frameBuffer.length > 4) frameBuffer.shift();
+    } catch { /* video not ready yet */ }
+  }, intervalMs);
+}
+
+export function stopBuffering(): void {
+  if (bufferTimer !== null) { clearInterval(bufferTimer); bufferTimer = null; }
+  frameBuffer = [];
+}
+
+/** Last k frames (oldest→newest) ending with a fresh grab — the temporal window for Retina. */
+export function grabSequence(k = 3, maxW = 768): string[] {
+  const fresh = grabFrame(maxW);
+  const recent = frameBuffer.slice(-(Math.max(1, k) - 1));
+  return [...recent, fresh];
 }
 
 /** Cheap 8x8 luminance fingerprint; returns true if the screen meaningfully changed. */
