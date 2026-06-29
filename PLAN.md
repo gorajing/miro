@@ -24,8 +24,9 @@
 | Fact | Value | Consequence for Miro |
 |---|---|---|
 | Model ID | `gemma-4-31b` | OpenAI-compatible, `base_url=https://api.cerebras.ai/v1` |
-| Throughput | **~1,850 tok/s** | Hero number; verify live = `completion_tokens / completion_time` |
-| **Image token cost** | **≤ 280 tokens/image** (dynamic by resolution; 1024×1024→256) | Vision is CHEAP — not the budget squeeze. Real count in `usage.prompt_tokens_details.image_tokens` → **show it on screen** |
+| Throughput | docs ~1,850 tok/s · **measured 2,600 tok/s** (text) | Hero number; verify live = `completion_tokens / completion_time`. Inference `total_time` ≈ **3.5ms** — the ~300ms wall is network RTT |
+| **Image token cost** | ≤280/image · **measured ~280** (1280×800 → `prompt_tokens` 297) | Vision is CHEAP — not the budget squeeze. (`image_tokens` sub-field returned empty in probe; infer from `prompt_tokens` delta) |
+| **Strict JSON + image** | ✅ **verified in H0 probe** | Retina contract (screenshot → guaranteed-valid JSON in one call) works on the image path |
 | Image downscale | ~768px effective at the 280 cap | **Crop to the region of interest** (terminal pane) or small text blurs out |
 | Image format | base64 PNG/JPEG data URI only; hosted URLs unsupported; ≤5 imgs/req | We send 1 cropped screenshot per Retina call |
 | **`max_completion_tokens`** | **MUST set on every call** | Rate-limiter estimates spend as input + (this OR full MSL). Omit it → every call billed at ~65K tokens → throttled to ~1 req/min → **demo dies silently**. Retina ≤400, instincts ≤250 |
@@ -121,7 +122,7 @@
 - `full_pack` (7 calls) ≈ **~4.3K tokens**, 7 requests.
 - **Binding constraint = RPM, not TPM:** 100 RPM ÷ 7 ≈ **~14 full reactions/min** (TPM allows ~23/min). `sniff` ≈ ~33/min.
 - → Plenty for an event-driven pet; impossible for frame-streaming. "Curl Up" is the governor.
-- **Concurrency:** Retina serial (gates), then instincts concurrent behind a **semaphore of 3–4** (100 RPM may be enforced ~1.6/s, so a 7-wide burst can 429). At ~1,850 tok/s the batch still finishes in ~1s → feels alive. *Measure the real 429 ceiling in H0.*
+- **Concurrency:** Retina serial (gates), then instincts concurrent. **Measured H0: 10-wide burst, 0 × 429** → the 7-call `full_pack` can `Promise.all` with no semaphore needed. At 2,600 tok/s the batch finishes well under 1s → feels alive.
 
 ---
 
