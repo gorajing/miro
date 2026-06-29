@@ -48,6 +48,18 @@ const SCENARIOS: Scenario[] = [
     terminalText: '[cached] ERROR from a previous run (2h ago).\nCurrent run: 30 passed, 0 failed.' },
   { name: 'normal editing', expect: ['normal'],
     terminalText: '$ git status\nOn branch main\nnothing to commit, working tree clean' },
+  { name: 'cargo red', expect: ['red_test'],
+    terminalText: 'error[E0308]: mismatched types\n  --> src/main.rs:12:18\ntest result: FAILED. 0 passed; 1 failed' },
+  { name: 'tsc type error', expect: ['red_test', 'unknown'],
+    terminalText: 'src/app.ts(42,10): error TS2322: Type \'string\' is not assignable to type \'number\'.\nFound 1 error.' },
+  { name: 'go test fail', expect: ['red_test'],
+    terminalText: '--- FAIL: TestLogin (0.01s)\n    auth_test.go:55: expected 200, got 401\nFAIL\nexit status 1' },
+  { name: 'vite build ok', expect: ['green_test', 'normal'],
+    terminalText: 'vite v5.4.21 building for production...\n✓ 732 modules transformed.\n✓ built in 1.2s' },
+  { name: 'force push risky', expect: ['risky_command'],
+    terminalText: '$ git push --force origin main' },
+  { name: 'noisy info logs', expect: ['normal'],
+    terminalText: '[info] server listening on :3000\n[info] GET /api/health 200 4ms\n[info] cache warm\n[info] GET /api/users 200 11ms' },
 ];
 
 let prev: RuntimeState = initialState();

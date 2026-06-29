@@ -81,6 +81,8 @@ memory = { ...memory, sessions: memory.sessions + 1, lastSeenISO: new Date().toI
 localStorage.setItem(MEM_KEY, JSON.stringify(memory));
 let state = { ...initialState(), openConcern: memory.openConcern, meters: { ...initialState().meters, bond: memory.bond } };
 let running = false;
+let lastReactAt = 0; // cooldown anchor
+let backoffUntil = 0; // set after a failed read, to stop hammering a hiccuping API
 let facing: MiroDirection = 'front';
 let dragging = false;
 let dragOffX = 0;
@@ -321,10 +323,12 @@ app.ticker.add((t) => {
 async function react(): Promise<void> {
   if (running || !isCapturing()) return;
   running = true;
+  lastReactAt = performance.now();
   try {
     const frames = grabSequence(3);
     const retina = await runRetina(frames, undefined, 'cerebras');
     const s = retina.data;
+    console.log('[miro]', s.event_type, '·', s.app, '·', s.what_changed, '·', `sig ${s.signal_strength.toFixed(2)}`, '·', `${(retina.metrics.totalTime * 1000).toFixed(0)}ms`);
 
     let swarm: SwarmOutput = { results: {}, metrics: { calls: 0, maxTotalTime: 0, tps: 0 } };
     if (s.recommended_swarm_tier !== 'none') swarm = await runSwarm(s, s.recommended_swarm_tier, 'cerebras', state.openConcern);
@@ -342,15 +346,21 @@ async function react(): Promise<void> {
       const recurrence = recordMoment(state.receipt, performance.now());
       showReceipt(state.receipt, false, recurrence); // surface what she saw + "this again?"
     }
-  } catch {
-    /* stay calm on a hiccup */
+  } catch (err) {
+    console.warn('[miro] read failed — backing off 15s', err);
+    backoffUntil = performance.now() + 15000;
   } finally {
     running = false;
   }
 }
 
-// Ambient watch: only spends tokens when the screen meaningfully changed (Curl Up).
-window.setInterval(() => { if (!running && isCapturing() && hasChanged()) void react(); }, 2500);
+// Ambient watch: only spends tokens when the screen changed (Curl Up), with a cooldown
+// (at most one reaction per ~4s — RPM-safe, less twitch) and a backoff after failures.
+const MIN_GAP_MS = 4000;
+window.setInterval(() => {
+  const now = performance.now();
+  if (!running && isCapturing() && now > backoffUntil && now - lastReactAt > MIN_GAP_MS && hasChanged()) void react();
+}, 2500);
 
 // Click-through everywhere except over Miro's body. Grab + drag her to reposition her.
 let interactive = false;
