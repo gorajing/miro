@@ -56,8 +56,8 @@ app.whenReady().then(() => {
 
   createWindow();
 
-  // Ask Miro for a recap of the session (she tells you your day).
-  globalShortcut.register('CommandOrControl+Shift+R', () => { win?.webContents.send('miro:recap'); });
+  // Ask Miro for a recap of the session (she tells you your day). Cmd/Ctrl+Shift+M (M for Miro).
+  globalShortcut.register('CommandOrControl+Shift+M', () => { win?.webContents.send('miro:recap'); });
 
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
