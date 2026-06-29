@@ -23,6 +23,8 @@ export interface Situation {
   recommended_swarm_tier: Tier;
   /** Normalized location (0..1, origin top-left) of the most notable thing — for Miro to point at. */
   focus_point: { x: number; y: number };
+  /** Normalized calm spot (empty area / window title bar / corner) where Miro can perch without covering content. */
+  rest_point: { x: number; y: number };
 }
 
 // --- Instinct outputs (each its own strict schema) -------------------------

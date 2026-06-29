@@ -13,15 +13,22 @@ export function isCapturing(): boolean {
 }
 
 export async function startCapture(): Promise<void> {
-  stream = await navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: 4 },
-    audio: false,
-  });
+  const ov = (window as unknown as { miroOverlay?: { isOverlay?: boolean; getSourceId?: () => Promise<string> } }).miroOverlay;
+  if (ov?.isOverlay && ov.getSourceId) {
+    // Electron overlay: grab the screen with no picker and no user gesture.
+    const sourceId = await ov.getSourceId();
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sourceId, maxWidth: 1920, maxHeight: 1200 } },
+    } as unknown as MediaStreamConstraints);
+  } else {
+    // Browser: the standard screen-share prompt.
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 4 }, audio: false });
+  }
   video = document.createElement('video');
   video.srcObject = stream;
   video.muted = true;
   await video.play();
-  // If the user stops sharing from the browser chrome, reset.
   stream.getVideoTracks()[0]?.addEventListener('ended', stopCapture);
 }
 

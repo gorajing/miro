@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
           main: resolve(process.cwd(), 'index.html'),
           app: resolve(process.cwd(), 'app.html'),
           race: resolve(process.cwd(), 'race.html'),
+          overlay: resolve(process.cwd(), 'overlay.html'),
         },
       },
     },

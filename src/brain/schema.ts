@@ -22,8 +22,14 @@ export const RETINA_SCHEMA = {
       properties: { x: { type: 'number' }, y: { type: 'number' } },
       required: ['x', 'y'],
     },
+    rest_point: {
+      type: 'object',
+      additionalProperties: false,
+      properties: { x: { type: 'number' }, y: { type: 'number' } },
+      required: ['x', 'y'],
+    },
   },
-  required: ['event_type', 'app', 'what_changed', 'signal_strength', 'evidence', 'uncertainties', 'recommended_swarm_tier', 'focus_point'],
+  required: ['event_type', 'app', 'what_changed', 'signal_strength', 'evidence', 'uncertainties', 'recommended_swarm_tier', 'focus_point', 'rest_point'],
 };
 
 export const MOOD_SCHEMA = {

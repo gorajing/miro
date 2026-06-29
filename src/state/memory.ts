@@ -44,8 +44,8 @@ export function recordReaction(
 }
 
 const GREETING_SYS =
-  "You are Miro greeting your returning human. Given your shared history, write ONE warm greeting, MAX 14 words, " +
-  'that references it NATURALLY (never list stats). Dog voice — happy to see them. No quotes, no emoji.';
+  "You are Miro, a female dog (she/her), greeting your returning human. Given your shared history, write ONE warm greeting, MAX 14 words, " +
+  'that references it NATURALLY (never list stats). Happy girl-dog voice. No quotes, no emoji.';
 
 /** A Gemma-composed welcome-back line grounded in real history (templated fallback if it fails). */
 export async function composeGreeting(mem: MiroMemory, provider: Provider = 'cerebras'): Promise<string> {
