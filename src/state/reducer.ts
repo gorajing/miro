@@ -1,5 +1,5 @@
 import type { MiroPose } from '../miroArt';
-import type { EventType, RuntimeState, Situation, SwarmOutput } from '../shared/types';
+import type { EventType, Receipt, RuntimeState, Situation, SwarmOutput } from '../shared/types';
 
 const FALLBACK_BUBBLE: Record<MiroPose, string> = {
   asleep: 'curling up. zero tokens.',
@@ -65,9 +65,21 @@ export function reduce(prev: RuntimeState, situation: Situation, swarm: SwarmOut
     ),
   };
 
-  return { pose, bubble, meters, openConcern };
+  // The receipt: the factual conclusion she reached — surfaced, not discarded.
+  const receipt: Receipt = {
+    event: situation.event_type,
+    app: situation.app,
+    cause: situation.what_changed,
+    evidence: situation.evidence,
+    target: r.fetch?.target ?? '',
+    isReal: r.verifier ? r.verifier.is_real : null,
+    reason: r.verifier?.reason ?? '',
+    danger: r.guard?.risk ? r.guard.note : '',
+  };
+
+  return { pose, bubble, meters, openConcern, receipt };
 }
 
 export function initialState(): RuntimeState {
-  return { pose: 'asleep', bubble: FALLBACK_BUBBLE.asleep, meters: { attention: 0, trust: 0.5, bond: 0.3 }, openConcern: null };
+  return { pose: 'asleep', bubble: FALLBACK_BUBBLE.asleep, meters: { attention: 0, trust: 0.5, bond: 0.3 }, openConcern: null, receipt: null };
 }

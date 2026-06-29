@@ -55,10 +55,24 @@ export interface SwarmOutput { results: SwarmResults; metrics: SwarmMetrics; tra
 
 export interface Meters { attention: number; trust: number; bond: number; }
 
+/** The factual "what I saw" — conclusions the pipeline already computed, surfaced instead of dropped. */
+export interface Receipt {
+  event: EventType;
+  app: AppKind;
+  cause: string; // what_changed — the named cause
+  evidence: string[]; // the literal error/command lines she keyed on
+  target: string; // fetch.target — the one file/error to open ('' if none)
+  isReal: boolean | null; // verifier verdict (null if it didn't run)
+  reason: string; // verifier.reason ('' if none)
+  danger: string; // guard.note when risky ('' otherwise)
+}
+
 export interface RuntimeState {
   pose: MiroPose;
   bubble: string;
   meters: Meters;
   /** What Miro is currently worried about, carried forward until it resolves. */
   openConcern: string | null;
+  /** The factual conclusion of this reaction (for the receipts card). */
+  receipt: Receipt | null;
 }

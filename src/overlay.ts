@@ -5,7 +5,7 @@ import { runRetina } from './brain/retina';
 import { runSwarm } from './brain/instincts';
 import { reduce, initialState } from './state/reducer';
 import { hydrate, recordReaction, composeGreeting } from './state/memory';
-import type { EventType, Situation, SwarmOutput } from './shared/types';
+import type { EventType, Receipt, Situation, SwarmOutput } from './shared/types';
 
 // Miro the desktop overlay: a pet that lives over your real screens, watches, and
 // moves with INTENT — she notices, orients, walks over, acts, then settles.
@@ -32,11 +32,32 @@ style.textContent = `
   .ov-bubble.show { opacity: 1; }
   .ov-bubble[data-mood="worried"], .ov-bubble[data-mood="guard"] { box-shadow: inset 0 0 0 2px #f25d4a; }
   .ov-bubble[data-mood="proud"] { box-shadow: inset 0 0 0 2px #61d66f; }
+  .ov-card {
+    position: fixed; max-width: 300px; min-width: 170px; padding: 8px 10px;
+    background: rgba(20,17,13,0.93); color: #f6e8cf; border: 1px solid #2c2118;
+    border-left: 3px solid #72d8ff; border-radius: 8px;
+    font: 600 12px ui-monospace, monospace; opacity: 0; transition: opacity .15s ease;
+    pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  }
+  .ov-card.show { opacity: 1; }
+  .ov-card[data-mood="worried"] { border-left-color: #f25d4a; }
+  .ov-card[data-mood="proud"] { border-left-color: #61d66f; }
+  .ov-card-hdr { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; }
+  .ov-chip { font-weight: 800; letter-spacing: 0.04em; }
+  .ov-app { color: #b9a888; }
+  .ov-real { margin-left: auto; font-size: 11px; }
+  .ov-cause { margin: 2px 0; }
+  .ov-open { color: #72d8ff; margin: 2px 0; }
+  .ov-evi { color: #b9a888; font-style: italic; margin: 2px 0; }
+  .ov-danger { color: #f25d4a; margin-top: 4px; }
 `;
 document.head.appendChild(style);
 const bubbleEl = document.createElement('div');
 bubbleEl.className = 'ov-bubble';
 root.appendChild(bubbleEl);
+const cardEl = document.createElement('div'); // the factual "what I saw" receipt
+cardEl.className = 'ov-card';
+root.appendChild(cardEl);
 
 const app = new Application();
 await app.init({ resizeTo: window, backgroundAlpha: 0, antialias: false, autoDensity: true, resolution: window.devicePixelRatio || 1 });
@@ -61,6 +82,10 @@ let facing: MiroDirection = 'front';
 let dragging = false;
 let dragOffX = 0;
 let dragOffY = 0;
+let pressing = false; // mousedown on her, not yet moved enough to be a drag
+let pressX = 0;
+let pressY = 0;
+let lastReceipt: Receipt | null = null;
 // Miro's real on-screen rect (from getLocalBounds), refreshed each frame.
 let petLeft = miro.x;
 let petTop = miro.y;
@@ -134,6 +159,49 @@ function setBubble(text: string, pose: MiroPose): void {
   bubbleEl.classList.toggle('show', show);
   if (bubbleTimer) window.clearTimeout(bubbleTimer);
   if (show) bubbleTimer = window.setTimeout(() => bubbleEl.classList.remove('show'), 5000); // transient, not a label
+}
+
+// The factual receipt — built from fields she already computed, via textContent (never innerHTML).
+const EVENT_LABEL: Record<EventType, string> = { red_test: 'RED TEST', green_test: 'PASSED', risky_command: 'RISKY', stale_error: 'STALE', normal: 'CALM', unknown: 'HMM' };
+function row(cls: string, text: string): HTMLDivElement {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = text;
+  return d;
+}
+function renderReceipt(r: Receipt): void {
+  cardEl.replaceChildren();
+  const hdr = document.createElement('div');
+  hdr.className = 'ov-card-hdr';
+  hdr.appendChild(row('ov-chip', EVENT_LABEL[r.event]));
+  hdr.appendChild(row('ov-app', r.app));
+  if (r.isReal !== null) {
+    const real = row('ov-real', r.isReal ? 'real' : 'stale');
+    real.style.color = r.isReal ? '#61d66f' : '#b9a888';
+    hdr.appendChild(real);
+  }
+  cardEl.appendChild(hdr);
+  if (r.cause) cardEl.appendChild(row('ov-cause', r.cause));
+  if (r.target) cardEl.appendChild(row('ov-open', `open → ${r.target}`));
+  if (r.evidence[0]) cardEl.appendChild(row('ov-evi', `“${r.evidence[0]}”`));
+  if (r.danger) cardEl.appendChild(row('ov-danger', `⚠ ${r.danger}`));
+  cardEl.dataset.mood = r.event === 'green_test' ? 'proud' : r.event === 'red_test' || r.event === 'risky_command' ? 'worried' : 'unsure';
+}
+
+let receiptTimer = 0;
+let receiptSticky = false;
+function showReceipt(r: Receipt, sticky: boolean): void {
+  lastReceipt = r;
+  renderReceipt(r);
+  cardEl.classList.add('show');
+  receiptSticky = sticky;
+  if (receiptTimer) window.clearTimeout(receiptTimer);
+  if (!sticky) receiptTimer = window.setTimeout(() => cardEl.classList.remove('show'), 8000);
+}
+function hideReceipt(): void {
+  cardEl.classList.remove('show');
+  receiptSticky = false;
+  if (receiptTimer) window.clearTimeout(receiptTimer);
 }
 
 const WALK_SPEED = 2.2; // px/frame cruise — a slow, deliberate amble
@@ -213,6 +281,18 @@ app.ticker.add((t) => {
   by = clamp(by, 6, window.innerHeight - bh - 6);
   bubbleEl.style.left = `${bx}px`;
   bubbleEl.style.top = `${by}px`;
+
+  // Receipt card: sits below her, flips above when there's no room, clamped on-screen.
+  if (cardEl.classList.contains('show')) {
+    const cw = cardEl.offsetWidth || 200;
+    const ch = cardEl.offsetHeight || 64;
+    const cx = clamp(petLeft + petW / 2 - cw / 2, 6, window.innerWidth - cw - 6);
+    let cy = petTop + petH + 8;
+    if (cy + ch > window.innerHeight - 6) cy = petTop - ch - 8;
+    cy = clamp(cy, 6, window.innerHeight - ch - 6);
+    cardEl.style.left = `${cx}px`;
+    cardEl.style.top = `${cy}px`;
+  }
 });
 
 async function react(): Promise<void> {
@@ -235,6 +315,7 @@ async function react(): Promise<void> {
     miro.setState({ attention: state.meters.attention, trust: state.meters.trust, bond: memory.bond });
     lastRest = s.rest_point;
     adopt(buildIntent(s, state.pose, state.bubble)); // movement, pose + bubble now flow through the intent machine
+    if (state.receipt && state.receipt.event !== 'normal') showReceipt(state.receipt, false); // surface what she actually saw
   } catch {
     /* stay calm on a hiccup */
   } finally {
@@ -251,17 +332,20 @@ const overPet = (x: number, y: number): boolean => x >= petLeft && x <= petLeft 
 
 window.addEventListener('mousedown', (e) => {
   if (overPet(e.clientX, e.clientY)) {
-    dragging = true;
+    pressing = true;
+    pressX = e.clientX;
+    pressY = e.clientY;
     dragOffX = e.clientX - miro.x;
     dragOffY = e.clientY - miro.y;
   }
 });
 
 window.addEventListener('mousemove', (e) => {
+  if (pressing && !dragging && Math.hypot(e.clientX - pressX, e.clientY - pressY) > 4) dragging = true; // moved enough → it's a drag
   if (dragging) {
     miro.x = e.clientX - dragOffX;
     miro.y = e.clientY - dragOffY;
-    return; // stay interactive for the whole drag
+    return;
   }
   const over = overPet(e.clientX, e.clientY);
   if (over !== interactive) {
@@ -271,13 +355,21 @@ window.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('mouseup', () => {
-  if (!dragging) return;
-  dragging = false;
-  // Settle where she was dropped, and stay put until a real event calls her.
-  const g = { x: (petLeft + petW / 2) / window.innerWidth, y: (petTop + petH) / window.innerHeight };
-  lastRest = g;
-  intent = restIntent(g, 600000);
-  phase = 'dwell';
+  if (dragging) {
+    dragging = false;
+    pressing = false;
+    const g = { x: (petLeft + petW / 2) / window.innerWidth, y: (petTop + petH) / window.innerHeight };
+    lastRest = g;
+    intent = restIntent(g, 600000); // settle where dropped until a real event calls her
+    phase = 'dwell';
+    return;
+  }
+  if (pressing) {
+    pressing = false;
+    // A click on her body → toggle the last receipt ("what did I just see?").
+    if (cardEl.classList.contains('show') && receiptSticky) hideReceipt();
+    else if (lastReceipt) showReceipt(lastReceipt, true);
+  }
 });
 
 // Start watching immediately (Electron auto-grants; no picker).
