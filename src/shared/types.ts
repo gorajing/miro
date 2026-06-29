@@ -43,7 +43,11 @@ export interface SwarmResults {
 export type InstinctKey = keyof SwarmResults;
 
 export interface SwarmMetrics { calls: number; maxTotalTime: number; tps: number; }
-export interface SwarmOutput { results: SwarmResults; metrics: SwarmMetrics; }
+
+/** One agent's turn in the coordinated pack — for inter-agent observability (the UI's agent chips). */
+export interface TraceEntry { agent: string; ms: number; ok: boolean; detail: string; }
+
+export interface SwarmOutput { results: SwarmResults; metrics: SwarmMetrics; trace?: TraceEntry[]; }
 
 export interface Meters { attention: number; trust: number; bond: number; }
 

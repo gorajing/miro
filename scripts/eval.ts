@@ -71,6 +71,7 @@ for (const sc of SCENARIOS) {
     console.log(`    bubble: "${next.bubble}"`);
     if (swarm.results.verifier) console.log(`    verifier: is_real=${swarm.results.verifier.is_real} (${swarm.results.verifier.reason})`);
     if (swarm.results.fetch) console.log(`    fetch: ${swarm.results.fetch.target}`);
+    if (swarm.trace) console.log(`    pack: ${swarm.trace.map((t) => t.agent + (t.ok ? '' : '✗')).join(' → ')}`);
   } catch (err) {
     console.log(`✗ ${sc.name}: ERROR ${err instanceof Error ? err.message : String(err)}`);
   }
