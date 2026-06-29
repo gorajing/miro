@@ -5,7 +5,7 @@ The hero footage is Miro reacting on your real screen. Record these beats; I ass
 ## Setup (once)
 - **Clean the stage:** Do Not Disturb on (no notifications), neutral wallpaper, no personal tabs, **no API keys / emails / secrets visible** (the hackathon rules require this).
 - A sample repo with **one failing test** ready (e.g. an auth test asserting `401 == 200`). Use the **same test** through beats 2→5 so the carry-forward payoff lands.
-- Start her: `npm run overlay`. Let her settle (greeting, then perched). After ~20s idle she curls up **asleep** — that's expected; any event or `⌘⇧L` wakes her.
+- Start her: `npm run dev`, then in a second terminal `npm run overlay`. Let her settle (greeting, then perched). After ~20s idle she curls up **asleep** — that's expected; any event or `⌘⇧L` wakes her.
 - Recorder: macOS `⌘⇧5` → Record Entire Screen (so Miro *and* your work both show). 1× real-time, **no cuts inside a beat**. Space separate takes ~60s apart (rate limits).
 - Save clips to `demo/footage/` as `beat1.mov … beat6.mov` (or one continuous `take.mov`).
 

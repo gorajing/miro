@@ -7,7 +7,8 @@
   body{background:radial-gradient(120% 90% at 50% 25%,#221911 0%,#14110d 70%);color:#f6e8cf;
     font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
   .wrap{width:1280px;height:720px;padding:64px 80px;display:flex;flex-direction:column}
-  .name{font-size:40px;font-weight:800;letter-spacing:-1px}
+  .name{font-size:40px;font-weight:800;letter-spacing:-1px;display:flex;align-items:center;gap:16px}
+  .name img{width:74px;height:auto;image-rendering:pixelated;filter:drop-shadow(0 5px 0 rgba(0,0,0,.26))}
   .name b{color:#e8b978}
   .stats{flex:1;display:flex;align-items:center;justify-content:center;gap:64px}
   .stat{text-align:center}
@@ -19,7 +20,7 @@
   @keyframes up{to{opacity:1;transform:none}}
 </style><body>
   <div class="wrap">
-    <div class="name reveal" style="animation-delay:.1s">🐶 <b>Miro</b> — Gemma 4 31B on Cerebras</div>
+    <div class="name reveal" style="animation-delay:.1s"><img src="../assets/miro-sprite.png" alt=""><span><b>Miro</b> — Gemma 4 31B on Cerebras</span></div>
     <div class="stats">
       <div class="stat reveal" style="animation-delay:.4s"><div class="num">~<span data-to="250">0</span>ms</div><div class="lbl">sees &amp; reacts</div></div>
       <div class="stat reveal" style="animation-delay:.7s"><div class="num"><span data-to="6">0</span></div><div class="lbl">coordinated agents</div></div>

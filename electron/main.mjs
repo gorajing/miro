@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OVERLAY_URL = process.env.MIRO_OVERLAY_URL || 'http://127.0.0.1:5174/overlay.html';
+const OVERLAY_URL = process.env.MIRO_OVERLAY_URL || 'http://127.0.0.1:5173/overlay.html';
 
 let win = null;
 
@@ -32,7 +32,14 @@ function createWindow() {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true, { forward: true }); // click-through everywhere; forward move events
-  win.setContentProtection(true); // try to exclude Miro from screen capture so she can't see herself
+  if (process.env.MIRO_CONTENT_PROTECTION === '1') win.setContentProtection(true); // opt-in; demo recordings must show her
+
+  // Diagnostics → main stdout (readable from logs), so we can confirm she actually loaded + is reading.
+  win.webContents.on('console-message', (_e, _lvl, message) => console.log(`[renderer] ${message}`));
+  win.webContents.on('did-finish-load', () => console.log('[main] overlay loaded:', OVERLAY_URL));
+  win.webContents.on('did-fail-load', (_e, code, desc, url) => console.log('[main] did-fail-load', code, desc, url));
+  win.webContents.on('render-process-gone', (_e, d) => console.log('[main] render-process-gone', JSON.stringify(d)));
+
   win.loadURL(OVERLAY_URL);                           // (the renderer also masks her region — that's the real guarantee)
 }
 

@@ -4,7 +4,7 @@ Arc (skill's proven shape): title → ONE real example end-to-end → show her *
 
 | # | t | Source | What's on screen | Caption (proof) |
 |---|---|---|---|---|
-| 0 | 0–5s | **CARD** `title.html` | Miro logo + name | "Miro — a desktop pet who understands your screen." sub: "Gemma 4 31B · Cerebras" (#1) |
+| 0 | 0–5s | **CARD** `title.html` | Miro sprite + name | "Miro — a desktop pet who understands your screen." sub: "Gemma 4 31B · Cerebras" (#1) |
 | 1 | 5–12s | **FOOTAGE** | Miro perched in the corner of a real coding desktop, calm, blinking, watching | "She lives over your work and watches — quietly, until something matters." (#2,#8) |
 | 2 | 12–24s | **FOOTAGE** (the core beat) | Run tests → **red**. Miro notices, walks over, goes worried, **receipts card** pops | "A test fails. She walks over, reads the real error, and names the file — in ~250 ms." (#2,#5,#7) |
 | 3 | 24–32s | **FOOTAGE** (discriminate) | A stale/cached error appears → Miro goes **unsure**, not worried | "A stale error? Her Verifier checks — she stays *unsure* instead of crying wolf." (#6,#9) |

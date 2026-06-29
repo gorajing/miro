@@ -2,6 +2,10 @@
 
 **A desktop pet who understands your screen.**
 
+<p align="center">
+  <img src="demo/assets/miro-clean.png" alt="Miro, the pixel desktop dog" width="520">
+</p>
+
 Miro is a transparent, always-on-top desktop companion (Electron + PixiJS) that watches your screen and understands what you're doing — powered by **Gemma 4 31B on Cerebras** (~1,500–2,600 tok/s, ~250 ms reads). She lives over your work, walks to whatever just happened, and tells you what she saw — the failing test, the one file to open, whether it's real or a stale error — then celebrates when you fix it and remembers your day.
 
 The magic is **latency**: at Cerebras speed her reactions feel *alive*, not like a buffering bot.
@@ -30,11 +34,13 @@ The magic is **latency**: at Cerebras speed her reactions feel *alive*, not like
 ```bash
 cp .env.example .env        # paste your Cerebras key into CEREBRAS_API_KEY
 npm install
-npm run overlay             # the desktop overlay (Electron) — she lives on your screen
-# or the web pages:
-npm run dev                 #   /app.html  windowed live demo
-                            #   /race.html Cerebras-vs-GPU side-by-side
-                            #   /         art pose preview
+npm run dev                 # starts Vite on http://127.0.0.1:5173
+npm run overlay             # in a second terminal: the desktop overlay
+# Vite also serves:
+#   /app.html  windowed live demo
+#   /race.html Cerebras-vs-GPU side-by-side
+#   /          art pose preview
+npm run render:miro         # regenerate demo/assets/miro-clean.png + miro-sprite.png
 npm run probe               # confirm Cerebras access + real speed/token numbers
 ```
 
