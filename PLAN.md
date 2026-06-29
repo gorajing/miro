@@ -86,9 +86,9 @@
 
 ## 4. Stack
 
-- **Electron + TypeScript + Vite (Electron Forge).** Electron gives the transparent always-on-top overlay, native screen capture, and a renderer for the pet in one shell.
+- **Vite + TypeScript + PixiJS** web app — two pages: `app.html` (live product) and `index.html` (art preview). No Electron: far lighter to ship in 24h, and the side-by-side is just two lanes on one page. *(Desktop-overlay packaging is a post-hackathon option.)*
 - **PixiJS** procedural character (rectangles/graphics primitives — no sprite pipeline, instant to retheme into a dog), driven by a 5-state machine + adaptive frame governor.
-- **macOS `screencapture`** → JPEG (cropped) → base64 → Cerebras. Black-frame detection (permission failure) → fail loud.
+- **Screen capture** via the browser `getDisplayMedia` API → JPEG (downscaled) → base64 → Cerebras. A Vite dev-server proxy injects the key so it never reaches the client; a cheap luminance fingerprint gates the swarm (Curl Up).
 - **Cerebras brain provider** — a `BrainProvider` interface with `decide()` returning strict JSON; the only network dependency. A second **Gemini** provider powers the side-by-side baseline.
 - **Memory** — a single local JSON file. (No DB, no vectors, no encryption for v0.)
 
