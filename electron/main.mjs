@@ -32,7 +32,8 @@ function createWindow() {
   win.setAlwaysOnTop(true, 'screen-saver');
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true, { forward: true }); // click-through everywhere; forward move events
-  win.loadURL(OVERLAY_URL);
+  win.setContentProtection(true); // try to exclude Miro from screen capture so she can't see herself
+  win.loadURL(OVERLAY_URL);                           // (the renderer also masks her region — that's the real guarantee)
 }
 
 app.whenReady().then(() => {

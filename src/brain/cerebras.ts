@@ -30,6 +30,7 @@ interface ChatOpts {
   temperature?: number;
   cacheKey?: string;
   provider?: Provider;
+  timeoutMs?: number; // hard request deadline; on expiry the call REJECTS (never hangs the caller)
 }
 
 const IS_NODE = typeof window === 'undefined';
@@ -101,7 +102,18 @@ export async function chatJSON<T>(opts: ChatOpts): Promise<{ data: T; metrics: M
 
   const endpoint = IS_NODE ? cfg.directUrl : cfg.proxyPath;
   const t0 = performance.now();
-  const res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
+  // Hard timeout: a stalled request must REJECT, never hang. Otherwise the caller's in-flight flag
+  // never clears and the pet freezes permanently (watch loop + ⌘⇧L both gated on it).
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 12000);
+  let res: Response;
+  try {
+    res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body), signal: ctrl.signal });
+  } catch (err) {
+    throw new Error(ctrl.signal.aborted ? `${provider} timed out after ${opts.timeoutMs ?? 12000}ms` : `${provider} fetch failed: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    clearTimeout(timer);
+  }
   const wallSec = (performance.now() - t0) / 1000;
 
   if (!res.ok) {

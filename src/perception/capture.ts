@@ -7,9 +7,33 @@ let video: HTMLVideoElement | null = null;
 let lastFingerprint: number[] | null = null;
 let frameBuffer: string[] = [];
 let bufferTimer: number | null = null;
+let selfMask: { x: number; y: number; w: number; h: number } | null = null;
 
 export function isCapturing(): boolean {
   return stream !== null;
+}
+
+/** Tell the capture layer where Miro's own overlay sits (overlay CSS px). Every frame paints this
+ *  region out BEFORE Retina sees it, so she can never read her own sprite/bubble/card — without that,
+ *  the screen-capture grabs her own window and she reacts to herself in an endless loop. */
+export function setSelfMask(rect: { x: number; y: number; w: number; h: number } | null): void {
+  selfMask = rect;
+}
+
+/** Paint Miro's region opaque. The canvas spans the full display, so we map overlay px → canvas px
+ *  via the window's on-screen position (works at any DPR since it's all ratios of display size). */
+function paintSelfMask(ctx: CanvasRenderingContext2D, canvasW: number, canvasH: number): void {
+  if (!selfMask) return;
+  const dispW = window.screen.width;
+  const dispH = window.screen.height;
+  if (!dispW || !dispH) return;
+  const m = 12; // margin (overlay px) to also cover soft edges / drop shadow
+  const x = ((window.screenX + selfMask.x - m) / dispW) * canvasW;
+  const y = ((window.screenY + selfMask.y - m) / dispH) * canvasH;
+  const w = ((selfMask.w + 2 * m) / dispW) * canvasW;
+  const h = ((selfMask.h + 2 * m) / dispH) * canvasH;
+  ctx.fillStyle = '#202020';
+  ctx.fillRect(x, y, w, h);
 }
 
 export async function startCapture(): Promise<void> {
@@ -53,6 +77,7 @@ function drawToCanvas(maxW: number): HTMLCanvasElement {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('No 2D context');
   ctx.drawImage(video, 0, 0, w, h);
+  paintSelfMask(ctx, w, h); // erase Miro from her own eyes
   return canvas;
 }
 
@@ -95,6 +120,7 @@ export function hasChanged(threshold = 10): boolean {
   const ctx = c.getContext('2d');
   if (!ctx) return true;
   ctx.drawImage(video, 0, 0, 8, 8);
+  paintSelfMask(ctx, 8, 8); // her own region is constant → she won't self-trigger when her card toggles
   const { data } = ctx.getImageData(0, 0, 8, 8);
   const fp: number[] = [];
   for (let i = 0; i < data.length; i += 4) {
