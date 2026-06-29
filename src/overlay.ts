@@ -261,7 +261,8 @@ app.ticker.add((t) => {
       const dy = desiredY - miro.y;
       const dist = Math.hypot(dx, dy);
       if (dist > 2) {
-        const speed = dist < DECEL ? Math.max(0.5, WALK_SPEED * (dist / DECEL)) : WALK_SPEED; // ease to a stop
+        const cruise = intent.kind === 'rest' ? WALK_SPEED : WALK_SPEED * 3.5; // trot to events, amble when idle
+      const speed = dist < DECEL ? Math.max(1, cruise * (dist / DECEL)) : cruise; // ease to a stop
         const step = Math.min(dist, speed * t.deltaTime);
         miro.x += (dx / dist) * step;
         miro.y += (dy / dist) * step;
@@ -356,11 +357,11 @@ async function react(): Promise<void> {
 
 // Ambient watch: only spends tokens when the screen changed (Curl Up), with a cooldown
 // (at most one reaction per ~4s — RPM-safe, less twitch) and a backoff after failures.
-const MIN_GAP_MS = 4000;
+const MIN_GAP_MS = 3000;
 window.setInterval(() => {
   const now = performance.now();
   if (!running && isCapturing() && now > backoffUntil && now - lastReactAt > MIN_GAP_MS && hasChanged()) void react();
-}, 2500);
+}, 1500);
 
 // Click-through everywhere except over Miro's body. Grab + drag her to reposition her.
 let interactive = false;
