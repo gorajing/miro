@@ -180,11 +180,18 @@ app.ticker.add((t) => {
         setPose(intent.arrivePose);
         if (intent.bubble) setBubble(intent.bubble, intent.arrivePose);
       }
-    } else if (intent.kind !== 'rest' && now - intent.startedAt > intent.ttlMs) {
-      // Done attending — amble back to a calm perch.
-      intent = restIntent(lastRest);
-      phase = 'orient';
-      phaseStart = now;
+    } else {
+      // dwell: if her goal has moved (a refreshed read), pursue it; else resolve to rest after the commit window.
+      const ddx = desiredX - miro.x;
+      const ddy = desiredY - miro.y;
+      if (Math.hypot(ddx, ddy) > 28) {
+        phase = 'travel';
+        phaseStart = now;
+      } else if (intent.kind !== 'rest' && now - intent.startedAt > intent.ttlMs) {
+        intent = restIntent(lastRest);
+        phase = 'orient';
+        phaseStart = now;
+      }
     }
   }
 
