@@ -1,0 +1,11 @@
+{
+  "name": "miro",
+  "version": "0.0.1",
+  "private": false,
+  "description": "A cute desktop pet whose world is your computer — it watches your screen and reacts, powered by Gemma 4 31B on Cerebras.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "probe": "node --env-file=.env scripts/probe.mjs"
+  }
+}
