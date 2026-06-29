@@ -6,6 +6,7 @@ import { startCapture, stopCapture, isCapturing, grabFrame, hasChanged } from '.
 import { runRetina } from './brain/retina';
 import { runSwarm } from './brain/instincts';
 import { reduce, initialState } from './state/reducer';
+import { hydrate, recordReaction, composeGreeting, type MiroMemory } from './state/memory';
 import { createHud } from './hud';
 import type { SwarmOutput, Tier } from './shared/types';
 
@@ -57,7 +58,15 @@ miro.y = 38;
 app.stage.addChild(miro);
 app.ticker.add((t) => miro.tick(t.deltaTime));
 
-let state = initialState();
+const MEM_KEY = 'miro.memory.v1';
+const loadMem = (): MiroMemory => hydrate(localStorage.getItem(MEM_KEY));
+const saveMem = (m: MiroMemory): void => { try { localStorage.setItem(MEM_KEY, JSON.stringify(m)); } catch { /* private mode */ } };
+
+let memory = loadMem();
+memory = { ...memory, sessions: memory.sessions + 1, lastSeenISO: new Date().toISOString() };
+saveMem(memory);
+
+let state = { ...initialState(), openConcern: memory.openConcern, meters: { ...initialState().meters, bond: memory.bond } };
 let running = false;
 let autoOn = false;
 
@@ -93,7 +102,12 @@ async function react(manual: boolean): Promise<void> {
     let swarm: SwarmOutput = { results: {}, metrics: { calls: 0, maxTotalTime: 0, tps: 0 } };
     if (tier !== 'none') swarm = await runSwarm(s, tier);
 
+    const prevConcern = state.openConcern;
     state = reduce(state, s, swarm);
+    const resolved = prevConcern !== null && state.openConcern === null && s.event_type === 'green_test';
+    memory = recordReaction(memory, s.event_type, { resolvedConcern: resolved, concern: state.openConcern });
+    saveMem(memory);
+    state = { ...state, meters: { ...state.meters, bond: memory.bond } };
     miro.setState({ pose: state.pose, attention: state.meters.attention, trust: state.meters.trust, bond: state.meters.bond });
     setBubble(state.bubble, state.pose);
 
@@ -122,8 +136,9 @@ shareBtn.addEventListener('click', async () => {
     triggerBtn.disabled = false;
     autoBtn.disabled = false;
     miro.setState({ pose: 'idle' });
-    setBubble('watching quietly.', 'idle');
+    setBubble('…', 'idle');
     hud.log('screen shared — Miro is watching.');
+    composeGreeting(memory).then((g) => setBubble(g, 'idle')).catch(() => setBubble('watching quietly.', 'idle'));
   } catch (err) {
     hud.log(err instanceof Error ? err.message : String(err), true);
   }

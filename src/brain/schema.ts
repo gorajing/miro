@@ -66,3 +66,10 @@ export const STORY_SCHEMA = {
   properties: { line: { type: 'string' } },
   required: ['line'],
 };
+
+export const GREETING_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { line: { type: 'string' } },
+  required: ['line'],
+};

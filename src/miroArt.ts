@@ -160,7 +160,7 @@ function colorsForPose(pose: MiroPose): MiroColors {
 function drawSitSprite(c: CellPainter, pose: MiroPose, frame: number): void {
   const colors = colorsForPose(pose);
   const tick = Math.floor(frame / 12);
-  const breath = pose === 'idle' ? tick % 4 === 0 ? 1 : 0 : 0;
+  const breath = pose === 'idle' ? tick % 16 >= 8 ? 1 : 0 : 0;
   const hop = pose === 'proud' && tick % 2 === 0 ? -1 : 0;
   const shake = pose === 'worried' && tick % 2 === 0 ? -1 : 0;
   const tilt = pose === 'curious' || pose === 'unsure' ? tick % 4 < 2 ? -1 : 0 : 0;
@@ -177,19 +177,19 @@ function drawSitSprite(c: CellPainter, pose: MiroPose, frame: number): void {
 }
 
 function drawSitBody(c: CellPainter, x: number, y: number, colors: MiroColors): void {
-  c(x + 12, y + 22, 15, 11, palette.outline);
-  c(x + 13, y + 21, 12, 11, colors.fur);
-  c(x + 14, y + 22, 8, 2, colors.light);
-  c(x + 14, y + 25, 7, 6, colors.cream);
+  c(x + 12, y + 23, 15, 10, palette.outline);
+  c(x + 13, y + 22, 12, 10, colors.fur);
+  c(x + 14, y + 23, 8, 2, colors.light);
+  c(x + 14, y + 26, 7, 5, colors.cream);
   c(x + 21, y + 24, 5, 8, colors.fur);
   c(x + 23, y + 25, 3, 5, colors.shadow);
 
-  c(x + 10, y + 30, 6, 4, palette.outline);
-  c(x + 11, y + 30, 4, 3, colors.cream);
-  c(x + 22, y + 30, 6, 4, palette.outline);
-  c(x + 23, y + 30, 4, 3, colors.cream);
+  c(x + 9, y + 30, 8, 4, palette.outline);
+  c(x + 10, y + 30, 6, 3, colors.cream);
+  c(x + 21, y + 30, 8, 4, palette.outline);
+  c(x + 22, y + 30, 6, 3, colors.cream);
   c(x + 15, y + 31, 1, 1, colors.shadow);
-  c(x + 26, y + 31, 1, 1, colors.shadow);
+  c(x + 27, y + 31, 1, 1, colors.shadow);
 
   c(x + 13, y + 23, 1, 3, palette.collar);
   c(x + 14, y + 24, 1, 1, palette.tag);
@@ -217,7 +217,7 @@ function drawSitEars(c: CellPainter, x: number, y: number, colors: MiroColors, p
   const worriedDrop = pose === 'worried' ? 2 : 0;
   const unsureDrop = pose === 'unsure' ? 1 : 0;
   const sniffLift = pose === 'sniff' ? -2 : 0;
-  const twitch = pose === 'idle' && tick % 24 === 0 ? -1 : 0;
+  const twitch = pose === 'idle' && tick % 48 === 24 ? -1 : 0;
   const leftDrop = worriedDrop + unsureDrop + twitch;
   const rightShift = worriedDrop + unsureDrop + sniffLift;
 
@@ -246,7 +246,7 @@ function drawSitFace(c: CellPainter, x: number, y: number, colors: MiroColors, p
     return;
   }
 
-  const blink = pose === 'idle' && tick % 36 === 0;
+  const blink = pose === 'idle' && tick % 48 === 24;
   if (blink) {
     c(x + 10, y + 14, 4, 1, palette.outline);
     c(x + 19, y + 14, 4, 1, palette.outline);
@@ -271,17 +271,17 @@ function drawSitFace(c: CellPainter, x: number, y: number, colors: MiroColors, p
 
 function drawSitTail(c: CellPainter, x: number, y: number, colors: MiroColors, pose: MiroPose, tick: number): void {
   if (pose === 'worried') {
-    c(x + 25, y + 28, 6, 3, palette.outline);
-    c(x + 26, y + 28, 4, 2, colors.fur);
+    c(x + 24, y + 28, 7, 3, palette.outline);
+    c(x + 25, y + 28, 5, 2, colors.fur);
     return;
   }
 
   const wag = pose === 'proud' || pose === 'curious' ? tick % 2 : 0;
-  c(x + 25, y + 23 - wag, 6, 5, palette.outline);
-  c(x + 30, y + 19 - wag, 4, 8, palette.outline);
-  c(x + 26, y + 24 - wag, 5, 3, colors.fur);
-  c(x + 30, y + 21 - wag, 2, 5, colors.light);
-  c(x + 32, y + 20 - wag, 1, 2, colors.cream);
+  c(x + 25, y + 24 - wag, 6, 5, palette.outline);
+  c(x + 30, y + 20 - wag, 4, 7, palette.outline);
+  c(x + 26, y + 25 - wag, 5, 3, colors.fur);
+  c(x + 30, y + 22 - wag, 2, 4, colors.light);
+  c(x + 32, y + 21 - wag, 1, 2, colors.cream);
 }
 
 function drawSitPoseEffects(c: CellPainter, x: number, y: number, pose: MiroPose, tick: number): void {
