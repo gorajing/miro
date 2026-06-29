@@ -222,6 +222,7 @@ async function showRecap(): Promise<void> {
   cardEl.classList.add('show');
   receiptSticky = true;
   if (receiptTimer) window.clearTimeout(receiptTimer);
+  receiptTimer = window.setTimeout(() => { cardEl.classList.remove('show'); receiptSticky = false; }, 20000); // safety: never stuck
   setPose('proud');
   setBubble('here is our day so far', 'proud');
   renderRecap(await composeRecap('cerebras'));
@@ -399,7 +400,10 @@ window.addEventListener('mouseup', () => {
 });
 
 // Recap on demand (global shortcut from main) — she tells you the arc of your day.
-window.miroOverlay?.onRecap(() => { void showRecap(); });
+window.miroOverlay?.onRecap(() => {
+  if (cardEl.classList.contains('show') && receiptSticky) hideReceipt(); // press again → toggle off
+  else void showRecap();
+});
 
 // Start watching immediately (Electron auto-grants; no picker).
 (async () => {

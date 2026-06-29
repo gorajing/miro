@@ -236,8 +236,9 @@ function drawSitEars(c: CellPainter, x: number, y: number, colors: MiroColors, p
 function drawSitFace(c: CellPainter, x: number, y: number, pose: MiroPose, tick: number): void {
   const blink = pose === 'idle' && tick % 48 === 24;
   if (blink) {
-    c(x + 13, y + 13, 3, 1, palette.paper);
-    c(x + 22, y + 13, 3, 1, palette.paper);
+    c(x + 11, y + 17, 3, 1, palette.outline);
+    c(x + 24, y + 17, 3, 1, palette.outline);
+    drawSitMouth(c, x, y, pose, tick);
     return;
   }
 
@@ -245,6 +246,10 @@ function drawSitFace(c: CellPainter, x: number, y: number, pose: MiroPose, tick:
   c(x + 22, y + 12, 3, 3, palette.paper);
   c(x + 11, y + 16, 3, 3, palette.outline);
   c(x + 24, y + 16, 3, 3, palette.outline);
+  if (pose !== 'buffering') {
+    c(x + 12, y + 16, 1, 1, palette.eyeSpark);
+    c(x + 25, y + 16, 1, 1, palette.eyeSpark);
+  }
 
   drawSitMouth(c, x, y, pose, tick);
 }
@@ -256,25 +261,37 @@ function drawSitMouth(c: CellPainter, x: number, y: number, pose: MiroPose, tick
     return;
   }
 
-  if (pose === 'proud' || pose === 'fetch') {
+  if (pose === 'proud') {
     c(x + 17, y + 21, 1, 1, palette.outline);
     c(x + 18, y + 22, 3, 1, palette.outline);
     c(x + 21, y + 21, 1, 1, palette.outline);
     return;
   }
 
-  if (pose === 'worried' || pose === 'guard') {
-    c(x + 17, y + 22, 4, 1, palette.outline);
+  if (pose === 'fetch' || pose === 'idle') {
+    c(x + 18, y + 21, 1, 1, palette.outline);
+    c(x + 19, y + 22, 2, 1, palette.outline);
     return;
   }
 
-  if (pose === 'curious' || pose === 'unsure') {
+  if (pose === 'worried' || pose === 'guard') {
+    c(x + 18, y + 22, pose === 'guard' ? 4 : 3, 1, palette.outline);
+    return;
+  }
+
+  if (pose === 'curious') {
     c(x + 18, y + 22, 3, 1, palette.outline);
     return;
   }
 
-  if (pose === 'buffering') {
+  if (pose === 'unsure') {
     c(x + 18, y + 22, 2, 1, palette.outline);
+    c(x + 20, y + 23, 1, 1, palette.outline);
+    return;
+  }
+
+  if (pose === 'buffering') {
+    c(x + 18, y + 22, 1, 1, palette.outline);
     return;
   }
 
@@ -304,7 +321,6 @@ function drawSitPoseEffects(c: CellPainter, x: number, y: number, pose: MiroPose
   }
 
   if (pose === 'worried') {
-    c(x + 16, y + 28, 6, 1, palette.warning);
     c(x + 34, y + 12, 1, 4, palette.warning);
     c(x + 34, y + 18, 1, 1, palette.warning);
   }
