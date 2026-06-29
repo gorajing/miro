@@ -206,7 +206,6 @@ function drawSitHead(c: CellPainter, x: number, y: number, colors: MiroColors, p
 
   c(x + 17 - sniff, y + 18, 3, 2, palette.outline);
   c(x + 18 - sniff, y + 19, 1, 1, palette.eyeGloss);
-  c(x + 18, y + 21, 1, 2, palette.outline);
 }
 
 function drawSitEars(c: CellPainter, x: number, y: number, colors: MiroColors, pose: MiroPose, tick: number): void {
@@ -247,13 +246,39 @@ function drawSitFace(c: CellPainter, x: number, y: number, pose: MiroPose, tick:
   c(x + 11, y + 16, 3, 3, palette.outline);
   c(x + 24, y + 16, 3, 3, palette.outline);
 
+  drawSitMouth(c, x, y, pose, tick);
+}
+
+function drawSitMouth(c: CellPainter, x: number, y: number, pose: MiroPose, tick: number): void {
+  if (pose === 'sniff') {
+    const sniff = 1 + (tick % 2);
+    c(x + 18 - sniff, y + 21, 2, 1, palette.outline);
+    return;
+  }
+
   if (pose === 'proud' || pose === 'fetch') {
-    c(x + 17, y + 21, 4, 1, palette.outline);
+    c(x + 17, y + 21, 1, 1, palette.outline);
+    c(x + 18, y + 22, 3, 1, palette.outline);
+    c(x + 21, y + 21, 1, 1, palette.outline);
+    return;
+  }
+
+  if (pose === 'worried' || pose === 'guard') {
+    c(x + 17, y + 22, 4, 1, palette.outline);
+    return;
   }
 
   if (pose === 'curious' || pose === 'unsure') {
-    c(x + 17, y + 22, 4, 1, palette.outline);
+    c(x + 18, y + 22, 3, 1, palette.outline);
+    return;
   }
+
+  if (pose === 'buffering') {
+    c(x + 18, y + 22, 2, 1, palette.outline);
+    return;
+  }
+
+  c(x + 18, y + 21, 1, 2, palette.outline);
 }
 
 function drawSitTail(c: CellPainter, x: number, y: number, colors: MiroColors, pose: MiroPose, tick: number): void {

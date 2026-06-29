@@ -85,3 +85,10 @@ export const GREETING_SCHEMA = {
   properties: { line: { type: 'string' } },
   required: ['line'],
 };
+
+export const RECAP_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { recap: { type: 'array', items: { type: 'string' } } },
+  required: ['recap'],
+};

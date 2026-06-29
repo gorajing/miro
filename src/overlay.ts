@@ -5,6 +5,7 @@ import { runRetina } from './brain/retina';
 import { runSwarm } from './brain/instincts';
 import { reduce, initialState } from './state/reducer';
 import { hydrate, recordReaction, composeGreeting } from './state/memory';
+import { recordMoment, composeRecap } from './state/session';
 import type { EventType, Receipt, Situation, SwarmOutput } from './shared/types';
 
 // Miro the desktop overlay: a pet that lives over your real screens, watches, and
@@ -13,7 +14,7 @@ import type { EventType, Receipt, Situation, SwarmOutput } from './shared/types'
 
 declare global {
   interface Window {
-    miroOverlay?: { isOverlay: boolean; getSourceId: () => Promise<string>; setInteractive: (v: boolean) => void };
+    miroOverlay?: { isOverlay: boolean; getSourceId: () => Promise<string>; setInteractive: (v: boolean) => void; onRecap: (cb: () => void) => void };
   }
 }
 
@@ -50,6 +51,8 @@ style.textContent = `
   .ov-open { color: #72d8ff; margin: 2px 0; }
   .ov-evi { color: #b9a888; font-style: italic; margin: 2px 0; }
   .ov-danger { color: #f25d4a; margin-top: 4px; }
+  .ov-rep { color: #e8b978; font-size: 11px; margin: 2px 0; }
+  .ov-recap-line { margin: 3px 0; }
 `;
 document.head.appendChild(style);
 const bubbleEl = document.createElement('div');
@@ -169,7 +172,10 @@ function row(cls: string, text: string): HTMLDivElement {
   d.textContent = text;
   return d;
 }
-function renderReceipt(r: Receipt): void {
+function ordinal(n: number): string {
+  return n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`;
+}
+function renderReceipt(r: Receipt, recurrence: number): void {
   cardEl.replaceChildren();
   const hdr = document.createElement('div');
   hdr.className = 'ov-card-hdr';
@@ -182,17 +188,25 @@ function renderReceipt(r: Receipt): void {
   }
   cardEl.appendChild(hdr);
   if (r.cause) cardEl.appendChild(row('ov-cause', r.cause));
+  if (recurrence > 1) cardEl.appendChild(row('ov-rep', `↻ ${ordinal(recurrence)} time this session`));
   if (r.target) cardEl.appendChild(row('ov-open', `open → ${r.target}`));
   if (r.evidence[0]) cardEl.appendChild(row('ov-evi', `“${r.evidence[0]}”`));
   if (r.danger) cardEl.appendChild(row('ov-danger', `⚠ ${r.danger}`));
   cardEl.dataset.mood = r.event === 'green_test' ? 'proud' : r.event === 'red_test' || r.event === 'risky_command' ? 'worried' : 'unsure';
 }
 
+function renderRecap(lines: string[]): void {
+  cardEl.replaceChildren();
+  cardEl.appendChild(row('ov-chip', "MIRO'S RECAP"));
+  for (const l of lines) cardEl.appendChild(row('ov-recap-line', `• ${l}`));
+  cardEl.dataset.mood = 'proud';
+}
+
 let receiptTimer = 0;
 let receiptSticky = false;
-function showReceipt(r: Receipt, sticky: boolean): void {
+function showReceipt(r: Receipt, sticky: boolean, recurrence = 1): void {
   lastReceipt = r;
-  renderReceipt(r);
+  renderReceipt(r, recurrence);
   cardEl.classList.add('show');
   receiptSticky = sticky;
   if (receiptTimer) window.clearTimeout(receiptTimer);
@@ -202,6 +216,15 @@ function hideReceipt(): void {
   cardEl.classList.remove('show');
   receiptSticky = false;
   if (receiptTimer) window.clearTimeout(receiptTimer);
+}
+async function showRecap(): Promise<void> {
+  renderRecap(['…thinking back over today…']);
+  cardEl.classList.add('show');
+  receiptSticky = true;
+  if (receiptTimer) window.clearTimeout(receiptTimer);
+  setPose('proud');
+  setBubble('here is our day so far', 'proud');
+  renderRecap(await composeRecap('cerebras'));
 }
 
 const WALK_SPEED = 2.2; // px/frame cruise — a slow, deliberate amble
@@ -315,7 +338,10 @@ async function react(): Promise<void> {
     miro.setState({ attention: state.meters.attention, trust: state.meters.trust, bond: memory.bond });
     lastRest = s.rest_point;
     adopt(buildIntent(s, state.pose, state.bubble)); // movement, pose + bubble now flow through the intent machine
-    if (state.receipt && state.receipt.event !== 'normal') showReceipt(state.receipt, false); // surface what she actually saw
+    if (state.receipt && state.receipt.event !== 'normal') {
+      const recurrence = recordMoment(state.receipt, performance.now());
+      showReceipt(state.receipt, false, recurrence); // surface what she saw + "this again?"
+    }
   } catch {
     /* stay calm on a hiccup */
   } finally {
@@ -371,6 +397,9 @@ window.addEventListener('mouseup', () => {
     else if (lastReceipt) showReceipt(lastReceipt, true);
   }
 });
+
+// Recap on demand (global shortcut from main) — she tells you the arc of your day.
+window.miroOverlay?.onRecap(() => { void showRecap(); });
 
 // Start watching immediately (Electron auto-grants; no picker).
 (async () => {

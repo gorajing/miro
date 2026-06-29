@@ -1,7 +1,7 @@
 // Miro desktop overlay — a transparent, always-on-top, click-through window so the
 // pet lives above all your screens. Clicks pass through the empty space; the renderer
 // flips interactivity on only when the cursor is over Miro himself.
-import { app, BrowserWindow, session, desktopCapturer, ipcMain, screen } from 'electron';
+import { app, BrowserWindow, session, desktopCapturer, ipcMain, screen, globalShortcut } from 'electron';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -55,7 +55,12 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+
+  // Ask Miro for a recap of the session (she tells you your day).
+  globalShortcut.register('CommandOrControl+Shift+R', () => { win?.webContents.send('miro:recap'); });
+
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
+app.on('will-quit', () => globalShortcut.unregisterAll());
 app.on('window-all-closed', () => app.quit());
