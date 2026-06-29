@@ -4,7 +4,7 @@ import sys
 
 
 def login() -> int:
-    return 410  # BUG: should return 200
+    return 401  # BUG: should return 200
 
 
 def test_login() -> None:
