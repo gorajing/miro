@@ -285,10 +285,10 @@ function drawSitPoseEffects(c: CellPainter, x: number, y: number, pose: MiroPose
   }
 
   if (pose === 'guard') {
-    c(x + 17, y + 1 + tick % 2, 6, 7, palette.outline);
-    c(x + 18, y + 2 + tick % 2, 4, 5, palette.warning);
-    c(x + 19, y + 3 + tick % 2, 1, 2, palette.paper);
-    c(x + 19, y + 6 + tick % 2, 1, 1, palette.paper);
+    c(x + 18, y - 1 + tick % 2, 5, 5, palette.outline);
+    c(x + 19, y + tick % 2, 3, 3, palette.warning);
+    c(x + 20, y + 1 + tick % 2, 1, 1, palette.paper);
+    c(x + 20, y + 3 + tick % 2, 1, 1, palette.paper);
   }
 
   if (pose === 'fetch') {
