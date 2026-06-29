@@ -59,7 +59,7 @@ for (const sc of SCENARIOS) {
     const retina = await runRetina(NEUTRAL, { terminalText: sc.terminalText });
     const s = retina.data;
     const tier: Tier = s.recommended_swarm_tier === 'none' ? 'sniff' : s.recommended_swarm_tier;
-    const swarm = await runSwarm(s, tier);
+    const swarm = await runSwarm(s, tier, 'cerebras', prev.openConcern);
     const next = reduce(prev, s, swarm);
     prev = next;
 

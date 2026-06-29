@@ -92,8 +92,9 @@ async function processReaction(frame: string, hint: string, manual: boolean): Pr
   let tier = maxTier(s.recommended_swarm_tier, floorFromText(hint));
   if (manual) tier = maxTier(tier, 'sniff');
 
+  const carried = state.openConcern;
   let swarm: SwarmOutput = { results: {}, metrics: { calls: 0, maxTotalTime: 0, tps: 0 } };
-  if (tier !== 'none') swarm = await runSwarm(s, tier);
+  if (tier !== 'none') swarm = await runSwarm(s, tier, 'cerebras', carried);
 
   const prevConcern = state.openConcern;
   state = reduce(state, s, swarm);

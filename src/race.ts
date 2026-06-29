@@ -108,7 +108,7 @@ async function runLane(lane: Lane, frame: string, hint: string): Promise<void> {
     const retina = await runRetina(frame, hint ? { terminalText: hint } : undefined, lane.provider);
     const s = retina.data;
     const tier = tierForDemo(s.recommended_swarm_tier);
-    const swarm = await runSwarm(s, tier, lane.provider);
+    const swarm = await runSwarm(s, tier, lane.provider, lane.state.openConcern);
     const elapsed = performance.now() - (lane.startedAt ?? performance.now());
     lane.startedAt = null;
     lane.state = reduce(lane.state, s, swarm);

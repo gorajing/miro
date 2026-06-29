@@ -32,7 +32,8 @@ const SYS: Record<InstinctKey, string> = {
     '(speak=true) or stay quiet. Only speak for genuinely strong, REAL signals — interrupting on noise erodes trust.',
   story:
     "You are Miro's voice — a warm, clever little dog. Given the pack's conclusion (pose, whether it's real, the fetch " +
-    'target, the risk), write ONE speech-bubble line, MAX 12 words, in-character (a touch playful, never robotic). No quotes.',
+    'target, the risk) and any resolved_worry, write ONE speech-bubble line, MAX 12 words, in-character (playful, never robotic). ' +
+    'If resolved_worry is set, reference THAT specific worry with relief — you had been carrying it. No quotes.',
 };
 
 const MAXTOK: Record<InstinctKey, number> = { verifier: 60, mood: 80, fetch: 40, guard: 50, nudge: 20, story: 40 };
@@ -88,7 +89,7 @@ const EVENT_MIN_TIER: Partial<Record<EventType, Tier>> = {
   risky_command: 'full_pack',
 };
 
-export async function runSwarm(situation: Situation, tier: Tier, provider: Provider = 'cerebras'): Promise<SwarmOutput> {
+export async function runSwarm(situation: Situation, tier: Tier, provider: Provider = 'cerebras', carriedConcern: string | null = null): Promise<SwarmOutput> {
   const results: SwarmResults = {};
   const trace: TraceEntry[] = [];
   let maxTps = 0;
@@ -134,7 +135,8 @@ export async function runSwarm(situation: Situation, tier: Tier, provider: Provi
   }
 
   // 4) Story synthesizes the whole pack into one line, last.
-  const storyCtx = `${base}\npose=${results.mood?.mood ?? ''}\nis_real=${isReal}\nfetch=${results.fetch?.target ?? ''}\nrisk=${results.guard?.risk ?? false}`;
+  const resolvedWorry = situation.event_type === 'green_test' && carriedConcern ? carriedConcern : '';
+  const storyCtx = `${base}\npose=${results.mood?.mood ?? ''}\nis_real=${isReal}\nfetch=${results.fetch?.target ?? ''}\nrisk=${results.guard?.risk ?? false}\nresolved_worry=${resolvedWorry || 'none'}`;
   const d = record(await callAgent<StoryResult>('story', 'story', SYS.story, storyCtx, provider));
   if (d) results.story = d;
 
