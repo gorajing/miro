@@ -24,7 +24,12 @@ interface ChatOpts {
   cacheKey?: string;
 }
 
-const ENDPOINT = '/cerebras/v1/chat/completions';
+// Browser: call the Vite proxy (key injected server-side, no CORS).
+// Node (eval/tests): call the API directly with the key from the environment.
+const IS_NODE = typeof window === 'undefined';
+const ENDPOINT = IS_NODE
+  ? 'https://api.cerebras.ai/v1/chat/completions'
+  : '/cerebras/v1/chat/completions';
 const MODEL = 'gemma-4-31b';
 
 export async function chatJSON<T>(opts: ChatOpts): Promise<{ data: T; metrics: Metrics }> {
@@ -44,12 +49,12 @@ export async function chatJSON<T>(opts: ChatOpts): Promise<{ data: T; metrics: M
     ...(opts.cacheKey ? { prompt_cache_key: opts.cacheKey } : {}),
   };
 
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const nodeKey = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.CEREBRAS_API_KEY;
+  if (IS_NODE && nodeKey) headers.Authorization = `Bearer ${nodeKey}`;
+
   const t0 = performance.now();
-  const res = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  const res = await fetch(ENDPOINT, { method: 'POST', headers, body: JSON.stringify(body) });
   const wallSec = (performance.now() - t0) / 1000;
 
   if (!res.ok) {

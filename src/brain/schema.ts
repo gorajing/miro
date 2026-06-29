@@ -1,9 +1,9 @@
 // Strict-mode JSON schemas (Cerebras constrained decoding).
 // Rules honored: root object, additionalProperties:false on every object,
 // all properties listed in `required`, no pattern/format/minItems.
-import { MIRO_POSES } from '../miroArt';
+import { POSES } from '../shared/poses';
 
-const POSE_ENUM = [...MIRO_POSES];
+const POSE_ENUM = [...POSES];
 
 export const RETINA_SCHEMA = {
   type: 'object',

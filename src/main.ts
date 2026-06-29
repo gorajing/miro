@@ -15,11 +15,11 @@ async function bootPreview(): Promise<void> {
     <main class="shell">
       <section class="hero">
         <div>
-          <p class="eyebrow">Miro pixel-art workbench</p>
+          <p class="eyebrow">Miro 8-bit sprite workbench</p>
           <h1>A tiny dog who already knows what happened.</h1>
           <p class="copy">
-            Procedural PixiJS pass based on the real Miro: tan coat, cream face,
-            glossy eyes, slim paws, and the one-ear-up / one-ear-soft silhouette.
+            Procedural PixiJS pass based on the real Miro: chunky cells, tan coat,
+            cream face, glossy eyes, slim paws, and the one-ear-up / one-ear-soft silhouette.
           </p>
         </div>
         <div class="controls" aria-label="Pose controls"></div>
@@ -29,8 +29,8 @@ async function bootPreview(): Promise<void> {
         <aside class="notes">
           <h2>Art target</h2>
           <p>
-            Pose should carry the state before the speech bubble does. The teal
-            tag is optional; Miro must still read as herself from ears, mask,
+            Pose should carry the state before the speech bubble does. Keep the
+            grid coarse, the palette small, and Miro readable from ears, mask,
             eyes, and paws.
           </p>
           <dl>
@@ -100,14 +100,19 @@ async function bootPreview(): Promise<void> {
   gallery.y = 452;
   scene.addChild(gallery);
 
+  const galleryCards: Graphics[] = [];
   const galleryDogs = MIRO_POSES.map((pose, index) => {
     const holder = new Container();
     holder.x = index * 104;
     holder.y = 0;
 
+    const card = new Graphics();
+    holder.addChild(card);
+    galleryCards.push(card);
+
     const dog = new MiroView(createDefaultMiroState(pose), { pixel: 1.3 });
-    dog.x = 22;
-    dog.y = 5;
+    dog.x = 18;
+    dog.y = 10;
     holder.addChild(dog);
 
     const label = new Text({
@@ -118,8 +123,8 @@ async function bootPreview(): Promise<void> {
         fontSize: 11,
       },
     });
-    label.x = 5;
-    label.y = 100;
+    label.x = Math.max(5, Math.round((96 - label.width) / 2));
+    label.y = 102;
     holder.addChild(label);
 
     gallery.addChild(holder);
@@ -148,6 +153,14 @@ async function bootPreview(): Promise<void> {
     background.clear();
     background.rect(28, 28, 1064, 350).fill({ color: 0xf9f4e8 });
     background.rect(28, 28, 1064, 350).stroke({ color: 0xeadcc8, width: 2 });
+    background.rect(504, 62, 372, 290).fill({ color: 0xfff8e8, alpha: 0.52 });
+    background.rect(504, 62, 372, 290).stroke({ color: 0xd8c7a8, width: 2, alpha: 0.75 });
+    for (let x = 504; x <= 876; x += 17.4) {
+      background.rect(x, 62, 1, 290).fill({ color: 0xd8c7a8, alpha: 0.18 });
+    }
+    for (let y = 62; y <= 352; y += 17.4) {
+      background.rect(504, y, 372, 1).fill({ color: 0xd8c7a8, alpha: 0.18 });
+    }
     background.rect(28, 334, 1064, 44).fill({ color: 0xe7d8c0 });
     background.rect(40, 346, 1040, 2).fill({ color: 0xd2c0a6, alpha: 0.8 });
 
@@ -211,6 +224,17 @@ async function bootPreview(): Promise<void> {
   function drawGallerySelection(): void {
     galleryDogs.forEach((dog, index) => {
       const selected = MIRO_POSES[index] === activePose;
+      const card = galleryCards[index];
+      card.clear();
+      card.rect(0, 0, 96, 118).fill({ color: selected ? 0xfff8e8 : 0xf1e4cf, alpha: selected ? 0.92 : 0.58 });
+      card.rect(0, 0, 96, 118).stroke({ color: selected ? 0x2c2118 : 0xd6c5aa, width: selected ? 3 : 2 });
+      card.rect(7, 8, 82, 82).stroke({ color: selected ? 0x2aae9e : 0xd8c7a8, width: 1, alpha: selected ? 0.85 : 0.65 });
+      for (let gridX = 7; gridX <= 89; gridX += 10) {
+        card.rect(gridX, 8, 1, 82).fill({ color: 0xd8c7a8, alpha: 0.18 });
+      }
+      for (let gridY = 8; gridY <= 90; gridY += 10) {
+        card.rect(7, gridY, 82, 1).fill({ color: 0xd8c7a8, alpha: 0.18 });
+      }
       dog.alpha = selected ? 1 : 0.58;
       dog.scale.set(selected ? 1.08 : 1);
     });
