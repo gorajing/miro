@@ -67,9 +67,9 @@ await app.init({ resizeTo: window, backgroundAlpha: 0, antialias: false, autoDen
 app.canvas.id = 'ov-stage';
 document.body.appendChild(app.canvas);
 
-const PIXEL = 2.5;
-const PET_W = 65;
-const PET_H = 75;
+const PIXEL = 2.25; // 10% smaller
+const PET_W = 59;
+const PET_H = 68;
 const miro = new MiroView(createDefaultMiroState('asleep'), { pixel: PIXEL });
 app.stage.addChild(miro);
 miro.x = window.innerWidth * 0.88 - PET_W / 2; // start perched, top-right
