@@ -1,5 +1,5 @@
 import { Application } from 'pixi.js';
-import { MiroView, createDefaultMiroState, type MiroPose } from './miroArt';
+import { MiroView, createDefaultMiroState, type MiroPose, type MiroDirection } from './miroArt';
 import './app.css';
 
 import { startCapture, stopCapture, isCapturing, grabSequence, startBuffering, hasChanged } from './perception/capture';
@@ -30,6 +30,7 @@ appRoot.innerHTML = `
         <button id="auto" disabled>Auto: off</button>
       </div>
       <textarea id="termhint" placeholder="(optional) paste terminal / test output — text-first perception + forces Miro awake on FAIL/Error"></textarea>
+      <canvas id="thumb" class="thumb"></canvas>
     </div>
     <div id="side"></div>
   </div>`;
@@ -47,6 +48,28 @@ const triggerBtn = pick<HTMLButtonElement>('#trigger');
 const autoBtn = pick<HTMLButtonElement>('#auto');
 const termHint = pick<HTMLTextAreaElement>('#termhint');
 const hud = createHud(pick<HTMLDivElement>('#side'));
+const thumb = pick<HTMLCanvasElement>('#thumb');
+thumb.width = 260;
+thumb.height = 150;
+
+// "What Miro is looking at" — the newest frame with a ring at the grounded focus point.
+function renderFocus(frame: string, point: { x: number; y: number }): void {
+  const ctx = thumb.getContext('2d');
+  if (!ctx) return;
+  const img = new Image();
+  img.onload = () => {
+    ctx.clearRect(0, 0, thumb.width, thumb.height);
+    ctx.drawImage(img, 0, 0, thumb.width, thumb.height);
+    const cx = point.x * thumb.width;
+    const cy = point.y * thumb.height;
+    ctx.strokeStyle = '#72d8ff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, 16, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(114,216,255,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI * 2); ctx.stroke();
+  };
+  img.src = frame;
+  thumb.classList.add('show');
+}
 
 const app = new Application();
 await app.init({ width: 520, height: 440, backgroundAlpha: 0, antialias: false, autoDensity: true, resolution: window.devicePixelRatio || 1 });
@@ -102,8 +125,13 @@ async function processReaction(frames: string | string[], hint: string, manual: 
   memory = recordReaction(memory, s.event_type, { resolvedConcern: resolved, concern: state.openConcern });
   saveMem(memory);
   state = { ...state, meters: { ...state.meters, bond: memory.bond } };
-  miro.setState({ pose: state.pose, attention: state.meters.attention, trust: state.meters.trust, bond: state.meters.bond });
+  const dir: MiroDirection = s.focus_point.x < 0.4 ? 'left' : s.focus_point.x > 0.6 ? 'right' : 'front';
+  miro.setState({ pose: state.pose, direction: dir, attention: state.meters.attention, trust: state.meters.trust, bond: state.meters.bond });
   setBubble(state.bubble, state.pose);
+
+  const newest = Array.isArray(frames) ? frames[frames.length - 1] : frames;
+  if (s.event_type !== 'normal') renderFocus(newest, s.focus_point);
+  else thumb.classList.remove('show');
 
   hud.update({
     timeToReaction: retina.metrics.totalTime + swarm.metrics.maxTotalTime,

@@ -112,3 +112,10 @@ textarea {
 .err { color: var(--warn); }
 .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 4px; }
 h1 { font-size: 20px; margin: 0 0 12px; }
+
+.thumb {
+  width: 260px; height: 150px;
+  border: 1px solid var(--line); border-radius: 8px;
+  display: none;
+}
+.thumb.show { display: block; }

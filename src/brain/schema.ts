@@ -16,8 +16,14 @@ export const RETINA_SCHEMA = {
     evidence: { type: 'array', items: { type: 'string' } },
     uncertainties: { type: 'array', items: { type: 'string' } },
     recommended_swarm_tier: { type: 'string', enum: ['none', 'sniff', 'alert', 'full_pack'] },
+    focus_point: {
+      type: 'object',
+      additionalProperties: false,
+      properties: { x: { type: 'number' }, y: { type: 'number' } },
+      required: ['x', 'y'],
+    },
   },
-  required: ['event_type', 'app', 'what_changed', 'signal_strength', 'evidence', 'uncertainties', 'recommended_swarm_tier'],
+  required: ['event_type', 'app', 'what_changed', 'signal_strength', 'evidence', 'uncertainties', 'recommended_swarm_tier', 'focus_point'],
 };
 
 export const MOOD_SCHEMA = {

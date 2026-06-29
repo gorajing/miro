@@ -12,6 +12,7 @@ const SYSTEM = [
   'normal (nothing notable), unknown (cannot tell).',
   'signal_strength is 0..1: how much this deserves the pet\'s attention.',
   'recommended_swarm_tier: none for nothing, sniff for minor, alert for a likely-real event, full_pack for a clear major moment.',
+  'focus_point: the normalized location (x,y each 0..1, origin top-left) of the MOST notable thing on screen (the failure, the dialog, the changed area); use {x:0.5,y:0.5} when nothing stands out. Coarse is fine.',
   'Keep what_changed under 16 words. Be precise; do not invent UI that is not visible.',
 ].join(' ');
 

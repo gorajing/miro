@@ -21,6 +21,8 @@ export interface Situation {
   evidence: string[];
   uncertainties: string[];
   recommended_swarm_tier: Tier;
+  /** Normalized location (0..1, origin top-left) of the most notable thing — for Miro to point at. */
+  focus_point: { x: number; y: number };
 }
 
 // --- Instinct outputs (each its own strict schema) -------------------------

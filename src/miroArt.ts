@@ -178,15 +178,15 @@ function drawSitSprite(c: CellPainter, pose: MiroPose, frame: number): void {
 
 function drawSitBody(c: CellPainter, x: number, y: number, colors: MiroColors): void {
   c(x + 8, y + 19, 22, 12, palette.outline);
-  c(x + 9, y + 20, 6, 9, colors.light);
-  c(x + 23, y + 20, 6, 9, colors.shadow);
-  c(x + 14, y + 18, 10, 12, colors.cream);
+  c(x + 9, y + 20, 5, 9, colors.light);
+  c(x + 24, y + 20, 5, 9, colors.shadow);
+  c(x + 13, y + 18, 12, 12, colors.cream);
 
   c(x + 9, y + 29, 8, 3, palette.outline);
-  c(x + 10, y + 29, 5, 2, colors.light);
+  c(x + 10, y + 29, 5, 2, colors.cream);
   c(x + 21, y + 29, 8, 3, palette.outline);
   c(x + 23, y + 29, 5, 2, colors.cream);
-  c(x + 17, y + 25, 4, 7, palette.outline);
+  c(x + 18, y + 25, 3, 7, palette.outline);
 }
 
 function drawSitHead(c: CellPainter, x: number, y: number, colors: MiroColors, pose: MiroPose, tick: number): void {
@@ -199,14 +199,14 @@ function drawSitHead(c: CellPainter, x: number, y: number, colors: MiroColors, p
   c(x + 7, y + 12, 24, 6, colors.light);
   c(x + 8, y + 17, 22, 4, colors.cream);
 
-  c(x + 7, y + 12, 8, 6, colors.fur);
-  c(x + 24, y + 12, 7, 6, colors.shadow);
-  c(x + 14, y + 10, 10, 11, colors.cream);
-  c(x + 9, y + 17, 20, 5, colors.cream);
+  c(x + 7, y + 12, 7, 6, colors.fur);
+  c(x + 25, y + 12, 6, 6, colors.shadow);
+  c(x + 14, y + 10, 11, 11, colors.cream);
+  c(x + 8, y + 17, 22, 5, colors.cream);
 
-  c(x + 16 - sniff, y + 18, 4, 3, palette.outline);
-  c(x + 17 - sniff, y + 19, 2, 1, palette.eyeGloss);
-  c(x + 17, y + 21, 1, 3, palette.outline);
+  c(x + 17 - sniff, y + 18, 3, 2, palette.outline);
+  c(x + 18 - sniff, y + 19, 1, 1, palette.eyeGloss);
+  c(x + 18, y + 21, 1, 2, palette.outline);
 }
 
 function drawSitEars(c: CellPainter, x: number, y: number, colors: MiroColors, pose: MiroPose, tick: number): void {
@@ -254,8 +254,8 @@ function drawSitFace(c: CellPainter, x: number, y: number, colors: MiroColors, p
 
   c(x + 13, y + 12, 3, 3, palette.paper);
   c(x + 22, y + 12, 3, 3, palette.paper);
-  c(x + 11, y + 16, 4, 3, palette.outline);
-  c(x + 23, y + 16, 4, 3, palette.outline);
+  c(x + 11, y + 16, 3, 3, palette.outline);
+  c(x + 24, y + 16, 3, 3, palette.outline);
 
   if (pose === 'curious' || pose === 'unsure') {
     c(x + 17, y + 22, 4, 1, palette.outline);
@@ -286,7 +286,7 @@ function drawSitPoseEffects(c: CellPainter, x: number, y: number, pose: MiroPose
   }
 
   if (pose === 'worried') {
-    c(x + 15, y + 28, 8, 1, palette.warning);
+    c(x + 16, y + 28, 6, 1, palette.warning);
     c(x + 34, y + 12, 1, 4, palette.warning);
     c(x + 34, y + 18, 1, 1, palette.warning);
   }
