@@ -17,6 +17,9 @@
 | 11 | "Remembers — recurrence, a Bond across sessions, a day recap" | `memory-check.ts` (bond grows, greeting refs history); `session.ts` recurrence | ✅ verified |
 | 12 | "Point, don't act — she points; you decide" | design law; `SYS.fetch` = "point only, never act" | ✅ by design |
 | 13 | "~48× faster than a GPU model on the same call" | `race-check.ts` earlier: Cerebras 65 ms vs Gemini 3,134 ms | ⚠️ **needs a fresh Gemini key to re-derive/film** — else cut this beat |
+| 14 | "Reacts to changes, not noise — once, not 24×" | `belief-check.ts` → edge-trigger property + repeat suppression + terminal-truth | ✅ verified |
+| 15 | "Danger first — a staged `rm -rf` outranks a louder red test" | `guard-priority-check.ts` → `risky_command` + ⚠ danger note, end-to-end | ✅ verified |
+| 16 | "Naps when your screen is quiet, wakes when something happens" | `drowsiness-check.ts` → 8/8 sleep/wake transitions | ✅ verified |
 
 ## Honesty guardrails (what NOT to do)
 - **Speed:** lead with felt latency (~250 ms). If a tok/s number is shown, use the *live* telemetry value, not a remembered peak.
