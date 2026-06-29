@@ -25,6 +25,18 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        '/gemini': {
+          target: 'https://generativelanguage.googleapis.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/gemini/, ''),
+          configure: (proxy) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              if (env.GEMINI_API_KEY) {
+                proxyReq.setHeader('Authorization', `Bearer ${env.GEMINI_API_KEY}`);
+              }
+            });
+          },
+        },
       },
     },
     build: {
@@ -33,6 +45,7 @@ export default defineConfig(({ mode }) => {
         input: {
           main: resolve(process.cwd(), 'index.html'),
           app: resolve(process.cwd(), 'app.html'),
+          race: resolve(process.cwd(), 'race.html'),
         },
       },
     },

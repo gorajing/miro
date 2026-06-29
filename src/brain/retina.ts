@@ -1,4 +1,4 @@
-import { chatJSON, type Metrics } from './cerebras';
+import { chatJSON, type Metrics, type Provider } from './cerebras';
 import { RETINA_SCHEMA } from './schema';
 import type { Situation } from '../shared/types';
 
@@ -17,6 +17,7 @@ const SYSTEM = [
 export async function runRetina(
   frameDataUri: string,
   hints?: { terminalText?: string; scenario?: string },
+  provider: Provider = 'cerebras',
 ): Promise<{ data: Situation; metrics: Metrics }> {
   const parts: string[] = ['Read this screen for the pet.'];
   if (hints?.terminalText) parts.push(`Terminal text:\n${hints.terminalText.slice(0, 2000)}`);
@@ -33,5 +34,6 @@ export async function runRetina(
     maxTokens: 400,
     temperature: 0.2,
     cacheKey: 'miro-retina-v1',
+    provider,
   });
 }

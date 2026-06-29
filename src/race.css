@@ -1,0 +1,25 @@
+.race { padding: 18px; display: flex; flex-direction: column; gap: 14px; min-height: 100vh; }
+.race-top { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.race-caption { font-size: 20px; font-weight: 700; }
+.race-caption .accent { color: var(--scan); }
+.race-controls { display: flex; gap: 8px; }
+
+.lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lane .lane-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.lane .lane-label { font-size: 13px; color: var(--muted); }
+.lane .timer { font-size: 30px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lane .tps { font-size: 12px; color: var(--muted); }
+.lane.waiting .timer { color: var(--scan); }
+.lane.done .timer { color: var(--ok); }
+.lane.slow .timer { color: var(--warn); }
+.lane .stagebox { min-height: 380px; }
+
+.bubble {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  max-width: 80%; padding: 7px 12px; background: #fff8e8; color: #2c2118;
+  border: 3px solid var(--line); border-radius: 12px; font-weight: 700; font-size: 14px;
+  opacity: 0; transition: opacity 140ms ease;
+}
+.bubble.show { opacity: 1; }
+.bubble[data-mood="worried"], .bubble[data-mood="guard"] { box-shadow: inset 0 0 0 2px var(--warn); }
+.bubble[data-mood="proud"] { box-shadow: inset 0 0 0 2px var(--ok); }

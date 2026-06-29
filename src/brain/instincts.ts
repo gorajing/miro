@@ -1,4 +1,4 @@
-import { chatJSON } from './cerebras';
+import { chatJSON, type Provider } from './cerebras';
 import { MOOD_SCHEMA, NUDGE_SCHEMA, VERIFIER_SCHEMA, FETCH_SCHEMA, GUARD_SCHEMA, STORY_SCHEMA } from './schema';
 import type { Situation, Tier, InstinctKey, SwarmResults, SwarmOutput } from '../shared/types';
 
@@ -72,7 +72,7 @@ function situationText(s: Situation): string {
 
 interface OneResult { key: InstinctKey; data: unknown; totalTime: number; tps: number; }
 
-async function runOne(key: InstinctKey, text: string): Promise<OneResult | null> {
+async function runOne(key: InstinctKey, text: string, provider: Provider): Promise<OneResult | null> {
   const def = DEFS[key];
   try {
     const { data, metrics } = await chatJSON<unknown>({
@@ -82,6 +82,7 @@ async function runOne(key: InstinctKey, text: string): Promise<OneResult | null>
       schemaName: key,
       maxTokens: def.maxTokens,
       cacheKey: `miro-${key}-v1`,
+      provider,
     });
     return { key, data, totalTime: metrics.totalTime, tps: metrics.tps };
   } catch (err) {
@@ -91,10 +92,10 @@ async function runOne(key: InstinctKey, text: string): Promise<OneResult | null>
   }
 }
 
-export async function runSwarm(situation: Situation, tier: Tier): Promise<SwarmOutput> {
+export async function runSwarm(situation: Situation, tier: Tier, provider: Provider = 'cerebras'): Promise<SwarmOutput> {
   const keys = TIERS[tier];
   const text = situationText(situation);
-  const settled = await Promise.all(keys.map((k) => runOne(k, text)));
+  const settled = await Promise.all(keys.map((k) => runOne(k, text, provider)));
 
   const results: SwarmResults = {};
   let calls = 0;

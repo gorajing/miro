@@ -1,9 +1,16 @@
-// Thin Cerebras client. Calls the Vite proxy (/cerebras → api.cerebras.ai) so the
-// API key stays server-side. Every call is strict-JSON + capped output tokens
-// (omitting max_completion_tokens makes the rate-limiter assume full MSL → throttle).
+// Generic strict-JSON LLM client for Miro's two lanes:
+//   - cerebras (gemma-4-31b)  → the live product
+//   - gemini   (OpenAI-compat) → the side-by-side latency baseline
+// Browser calls the Vite proxy (key injected server-side, no CORS). Node (eval/
+// tests) calls the API directly with the key from the environment.
+// Output tokens are always capped (omitting the cap makes a rate-limiter assume
+// full MSL and throttle).
+
+export type Provider = 'cerebras' | 'gemini';
 
 export interface Metrics {
-  totalTime: number; // seconds, from time_info.total_time (falls back to wall)
+  provider: Provider;
+  totalTime: number; // seconds — time_info.total_time when available, else wall
   tps: number; // output tokens/sec
   promptTokens: number;
   completionTokens: number;
@@ -22,59 +29,103 @@ interface ChatOpts {
   maxTokens?: number;
   temperature?: number;
   cacheKey?: string;
+  provider?: Provider;
 }
 
-// Browser: call the Vite proxy (key injected server-side, no CORS).
-// Node (eval/tests): call the API directly with the key from the environment.
 const IS_NODE = typeof window === 'undefined';
-const ENDPOINT = IS_NODE
-  ? 'https://api.cerebras.ai/v1/chat/completions'
-  : '/cerebras/v1/chat/completions';
-const MODEL = 'gemma-4-31b';
+const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+
+interface ProviderConfig {
+  proxyPath: string; // browser (via Vite proxy)
+  directUrl: string; // node (direct)
+  model: string;
+  keyEnv: string;
+  tokenParam: 'max_completion_tokens' | 'max_tokens';
+  cacheKey: boolean;
+  timeInfo: boolean;
+  label: string;
+  extraBody?: Record<string, unknown>;
+}
+
+const PROVIDERS: Record<Provider, ProviderConfig> = {
+  cerebras: {
+    proxyPath: '/cerebras/v1/chat/completions',
+    directUrl: 'https://api.cerebras.ai/v1/chat/completions',
+    model: 'gemma-4-31b',
+    keyEnv: 'CEREBRAS_API_KEY',
+    tokenParam: 'max_completion_tokens',
+    cacheKey: true,
+    timeInfo: true,
+    label: 'Cerebras · Gemma 4 31B',
+  },
+  gemini: {
+    proxyPath: '/gemini/v1beta/openai/chat/completions',
+    directUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    model: nodeEnv.GEMINI_MODEL || 'gemini-3.5-flash', // current fast multimodal — fair GPU baseline
+    keyEnv: 'GEMINI_API_KEY',
+    tokenParam: 'max_tokens',
+    cacheKey: false,
+    timeInfo: false,
+    label: 'Gemini 3.5 Flash (GPU baseline)',
+    extraBody: { reasoning_effort: 'none' }, // disable thinking so the JSON isn't truncated
+  },
+};
+
+export const providerLabel = (p: Provider): string => PROVIDERS[p].label;
+export const providerModel = (p: Provider): string => PROVIDERS[p].model;
 
 export async function chatJSON<T>(opts: ChatOpts): Promise<{ data: T; metrics: Metrics }> {
+  const provider = opts.provider ?? 'cerebras';
+  const cfg = PROVIDERS[provider];
+
   const messages: Array<{ role: string; content: Content }> = [];
   if (opts.system) messages.push({ role: 'system', content: opts.system });
   messages.push({ role: 'user', content: opts.user });
 
-  const body = {
-    model: MODEL,
+  const body: Record<string, unknown> = {
+    model: cfg.model,
     messages,
-    max_completion_tokens: opts.maxTokens ?? 300,
+    [cfg.tokenParam]: opts.maxTokens ?? 300,
     temperature: opts.temperature ?? 0.3,
     response_format: {
       type: 'json_schema',
       json_schema: { name: opts.schemaName, strict: true, schema: opts.schema },
     },
-    ...(opts.cacheKey ? { prompt_cache_key: opts.cacheKey } : {}),
+    ...(cfg.extraBody ?? {}),
   };
+  if (cfg.cacheKey && opts.cacheKey) body.prompt_cache_key = opts.cacheKey;
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const nodeKey = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.CEREBRAS_API_KEY;
-  if (IS_NODE && nodeKey) headers.Authorization = `Bearer ${nodeKey}`;
+  const key = nodeEnv[cfg.keyEnv];
+  if (IS_NODE && key) headers.Authorization = `Bearer ${key}`;
 
+  const endpoint = IS_NODE ? cfg.directUrl : cfg.proxyPath;
   const t0 = performance.now();
-  const res = await fetch(ENDPOINT, { method: 'POST', headers, body: JSON.stringify(body) });
+  const res = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(body) });
   const wallSec = (performance.now() - t0) / 1000;
 
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    throw new Error(`Cerebras ${res.status}: ${txt.slice(0, 200)}`);
+    throw new Error(`${provider} ${res.status}: ${txt.slice(0, 200)}`);
   }
 
   const json: any = await res.json();
   const content: string = json?.choices?.[0]?.message?.content ?? '';
   const ti = json?.time_info ?? {};
   const u = json?.usage ?? {};
+  const completionTokens: number = u.completion_tokens ?? 0;
+  const totalTime = cfg.timeInfo && typeof ti.total_time === 'number' ? ti.total_time : wallSec;
 
   const metrics: Metrics = {
-    totalTime: typeof ti.total_time === 'number' ? ti.total_time : wallSec,
-    tps: ti.completion_time && u.completion_tokens ? u.completion_tokens / ti.completion_time : 0,
+    provider,
+    totalTime,
+    tps: cfg.timeInfo && ti.completion_time && completionTokens
+      ? completionTokens / ti.completion_time
+      : completionTokens && wallSec ? completionTokens / wallSec : 0,
     promptTokens: u.prompt_tokens ?? 0,
-    completionTokens: u.completion_tokens ?? 0,
+    completionTokens,
     imageTokens: u.prompt_tokens_details?.image_tokens ?? 0,
   };
 
-  // strict mode guarantees schema-valid JSON, so parse is safe.
   return { data: JSON.parse(content) as T, metrics };
 }
