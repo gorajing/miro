@@ -86,8 +86,8 @@ export function grabSequence(k = 3, maxW = 768): string[] {
 }
 
 /** Cheap 8x8 luminance fingerprint; returns true if the screen meaningfully changed.
- *  Threshold raised so cursor blinks / clock ticks / minor scroll jitter don't wake her. */
-export function hasChanged(threshold = 22): boolean {
+ *  Sensitive enough to catch a terminal printing test output; the reaction cooldown keeps her calm. */
+export function hasChanged(threshold = 10): boolean {
   if (!video) return false;
   const c = document.createElement('canvas');
   c.width = 8;

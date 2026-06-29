@@ -58,6 +58,8 @@ app.whenReady().then(() => {
 
   // Ask Miro for a recap of the session (she tells you your day). Cmd/Ctrl+Shift+M (M for Miro).
   globalShortcut.register('CommandOrControl+Shift+M', () => { win?.webContents.send('miro:recap'); });
+  // Force an immediate look (demo cue / when the change-detector is quiet). Cmd/Ctrl+Shift+L.
+  globalShortcut.register('CommandOrControl+Shift+L', () => { win?.webContents.send('miro:look'); });
 
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });

@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld('miroOverlay', {
   getSourceId: () => ipcRenderer.invoke('miro:source-id'),
   setInteractive: (v) => ipcRenderer.send('miro:interactive', !!v),
   onRecap: (cb) => ipcRenderer.on('miro:recap', () => cb()),
+  onLook: (cb) => ipcRenderer.on('miro:look', () => cb()),
 });

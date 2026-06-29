@@ -14,7 +14,7 @@ import type { EventType, Receipt, Situation, SwarmOutput } from './shared/types'
 
 declare global {
   interface Window {
-    miroOverlay?: { isOverlay: boolean; getSourceId: () => Promise<string>; setInteractive: (v: boolean) => void; onRecap: (cb: () => void) => void };
+    miroOverlay?: { isOverlay: boolean; getSourceId: () => Promise<string>; setInteractive: (v: boolean) => void; onRecap: (cb: () => void) => void; onLook: (cb: () => void) => void };
   }
 }
 
@@ -413,6 +413,9 @@ window.miroOverlay?.onRecap(() => {
   if (cardEl.classList.contains('show') && receiptSticky) hideReceipt(); // press again → toggle off
   else void showRecap();
 });
+
+// Force an immediate look — demo cue, bypasses the change-gate + cooldown.
+window.miroOverlay?.onLook(() => { void react(); });
 
 // Start watching immediately (Electron auto-grants; no picker).
 (async () => {
