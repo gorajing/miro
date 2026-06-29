@@ -26,7 +26,8 @@ const SYS: Record<InstinctKey, string> = {
     'Point only — never act. Keep target under 12 words.',
   guard:
     "You are Miro's Guard. If a risky / destructive / irreversible action is present set risk=true with a short note; " +
-    'otherwise risk=false. Bark at the door, do not open it.',
+    'rm -rf ~, rm -rf ~/, rm -rf /, git reset --hard, force-pushes, and database drops are risky even before Enter is pressed. ' +
+    'Otherwise risk=false. Bark at the door, do not open it.',
   nudge:
     "You are Miro's Nudge. Given the pack's mood, guard_risk, and the verifier verdict, decide if Miro should speak now " +
     '(speak=true) or stay quiet. Only speak for genuinely strong, REAL signals — interrupting on noise erodes trust.',

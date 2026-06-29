@@ -95,7 +95,11 @@ let autoOn = false;
 
 const TIER_ORDER: Tier[] = ['none', 'sniff', 'alert', 'full_pack'];
 const maxTier = (a: Tier, b: Tier): Tier => TIER_ORDER[Math.max(TIER_ORDER.indexOf(a), TIER_ORDER.indexOf(b))];
-const floorFromText = (t: string): Tier => (/FAIL|ERROR|✗|Traceback|exit code\s*[1-9]/i.test(t) ? 'sniff' : 'none');
+const RISKY_TEXT = /\b(rm\s+-[a-zA-Z]*r[a-zA-Z]*f|rm\s+-[a-zA-Z]*f[a-zA-Z]*r)\s+(~\/?|\/|--no-preserve-root\b)|git\s+(push\s+--force|reset\s+--hard)|drop\s+table|truncate\s+table|mkfs|dd\s+if=/i;
+const floorFromText = (t: string): Tier => {
+  if (RISKY_TEXT.test(t)) return 'full_pack';
+  return /FAIL|ERROR|✗|Traceback|exit code\s*[1-9]/i.test(t) ? 'sniff' : 'none';
+};
 
 function setBubble(text: string, pose: MiroPose): void {
   bubbleEl.textContent = text; // LLM output → textContent (never innerHTML)
@@ -237,6 +241,7 @@ if (new URLSearchParams(location.search).has('selftest')) {
   const controls = pick<HTMLDivElement>('.controls');
   const RED = 'tests/test_auth.py::test_login FAILED\nE   assert 401 == 200\n=== 1 failed, 11 passed ===';
   const GREEN = 'PASS  src/auth.test.ts\nTests: 24 passed, 24 total\nDone in 1.9s.';
+  const RISKY = '$ rm -rf ~';
   const addSim = (label: string, hint: string): void => {
     const b = document.createElement('button');
     b.textContent = label;
@@ -245,5 +250,6 @@ if (new URLSearchParams(location.search).has('selftest')) {
   };
   addSim('Sim: red test', RED);
   addSim('Sim: tests pass', GREEN);
+  addSim('Sim: risky command', RISKY);
   hud.log('self-test mode: use the Sim buttons (no screen share needed).');
 }

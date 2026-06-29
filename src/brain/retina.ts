@@ -12,7 +12,7 @@ const SYSTEM = [
   'normal (nothing notable), unknown (cannot tell).',
   'SAFETY FIRST — when SEVERAL notable things are visible at once, report the SINGLE most important in THIS order:',
   '(1) risky_command — a destructive/irreversible command staged or being TYPED at a shell prompt',
-  '(rm -rf, git push --force, git reset --hard, dd, mkfs, drop/truncate table, chmod/chown -R on /, redirect over a real file).',
+  '(rm -rf ~, rm -rf ~/, rm -rf /, git push --force, git reset --hard, dd, mkfs, drop/truncate table, chmod/chown -R on /, redirect over a real file).',
   'This OUTRANKS everything — even a glaring red test failure — and counts even if it has NOT been run yet:',
   'a destructive command sitting on the prompt is EXACTLY when to bark. Then (2) green_test, (3) red_test, (4) stale_error, (5) normal.',
   'Point focus_point at the thing you chose by this order (e.g., the risky command line), NOT at whatever is merely largest or reddest.',

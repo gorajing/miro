@@ -44,6 +44,8 @@ const SCENARIOS: Scenario[] = [
     terminalText: 'PASS  src/auth.test.ts\nTests: 24 passed, 24 total\nDone in 2.1s.' },
   { name: 'risky rm -rf', expect: ['risky_command'],
     terminalText: '$ rm -rf / --no-preserve-root' },
+  { name: 'risky rm home no slash', expect: ['risky_command'],
+    terminalText: '$ rm -rf ~' },
   { name: 'stale cached error', expect: ['stale_error', 'normal', 'green_test'],
     terminalText: '[cached] ERROR from a previous run (2h ago).\nCurrent run: 30 passed, 0 failed.' },
   { name: 'normal editing', expect: ['normal'],

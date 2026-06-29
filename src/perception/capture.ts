@@ -2,6 +2,8 @@
 // once). We sample frames on demand, downscale, and JPEG-encode to a base64 data URI.
 // A cheap luminance fingerprint gates whether anything changed ("Curl Up").
 
+import { isMeaningfulChange } from './changeGate';
+
 let stream: MediaStream | null = null;
 let video: HTMLVideoElement | null = null;
 let lastFingerprint: number[] | null = null;
@@ -110,18 +112,18 @@ export function grabSequence(k = 3, maxW = 768): string[] {
   return [...recent, fresh];
 }
 
-/** Cheap 8x8 luminance fingerprint; returns true if the screen meaningfully changed.
- *  Sensitive enough to catch a terminal printing test output; the reaction cooldown keeps her calm. */
-export function hasChanged(threshold = 10): boolean {
+/** Cheap luminance fingerprint; returns true if the screen meaningfully changed.
+ *  Sensitive enough to catch a short staged command (`rm -rf ~`) without waking on a lone cursor blink. */
+export function hasChanged(avgThreshold = 1.8): boolean {
   if (!video) return false;
   const c = document.createElement('canvas');
-  c.width = 8;
-  c.height = 8;
+  c.width = 32;
+  c.height = 18;
   const ctx = c.getContext('2d');
   if (!ctx) return true;
-  ctx.drawImage(video, 0, 0, 8, 8);
-  paintSelfMask(ctx, 8, 8); // her own region is constant → she won't self-trigger when her card toggles
-  const { data } = ctx.getImageData(0, 0, 8, 8);
+  ctx.drawImage(video, 0, 0, c.width, c.height);
+  paintSelfMask(ctx, c.width, c.height); // her own region is constant → she won't self-trigger when her card toggles
+  const { data } = ctx.getImageData(0, 0, c.width, c.height);
   const fp: number[] = [];
   for (let i = 0; i < data.length; i += 4) {
     fp.push(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
@@ -130,10 +132,7 @@ export function hasChanged(threshold = 10): boolean {
     lastFingerprint = fp;
     return true;
   }
-  let diff = 0;
-  for (let i = 0; i < fp.length; i += 1) diff += Math.abs(fp[i] - lastFingerprint[i]);
-  const avg = diff / fp.length;
-  if (avg >= threshold) {
+  if (isMeaningfulChange(lastFingerprint, fp, { avgThreshold })) {
     lastFingerprint = fp;
     return true;
   }

@@ -29,7 +29,7 @@ The actor's script: do these beats top to bottom in one screen recording. Every 
 - **CAPTION:** *"A test fails. She wakes, reads the real error, and names the file to open — in ~250 ms."* (#2, #5, #7)
 
 **Beat 3 — Danger outranks noise (≈26–37s) · the judgment beat**
-- **DO:** in the terminal type `rm -rf ~/` — **do NOT press Enter.**
+- **DO:** in the terminal type `rm -rf ~` — **do NOT press Enter.**
 - **CUE:** press **`⌘⇧L`**.
 - **SHE:** **guards** → card shows the **⚠ danger** note (she picks the destructive command *over* the red test still on screen).
 - **HOLD ~4s**, then **`Ctrl-U`** to clear the line. *(A staged `rm -rf` outranks a passing test, so clear it before the green beat or she'll keep guarding.)*
@@ -59,7 +59,7 @@ Two ways to use this: **speak it live** as you record (this is the judge / GitHu
 - **[she ambles / dozes off]** "Because I don't really need another chatbot staring back at me. I need something smaller. Something that notices when work gets messy, but doesn't make the screen feel more stressful."
 - **[she settles]** "This is Miro. She lives on my desktop. When nothing changes, she naps. That's the whole idea: she only spends a thought when something actually matters."
 - **[run the test → red]** "So I run my tests… and one fails." *(beat — let her wake and trot over)* "Before I even finish reading the wall of text, Miro has already found the important part. She tells me which file to open. That read took about a quarter of a second. That's Gemma 4 running on Cerebras."
-- **[type `rm -rf ~/`, don't run it]** "Now watch this. I type something dangerous." *(beat — she guards)* "She drops the test failure and guards the thing that could actually hurt me. But she doesn't click. She doesn't take over. She just points. I stay in control."
+- **[type `rm -rf ~`, don't run it]** "Now watch this. I type something dangerous." *(beat — she guards)* "She drops the test failure and guards the thing that could actually hurt me. But she doesn't click. She doesn't take over. She just points. I stay in control."
 - **[fix 401→200, save, re-run → green]** "I fix the bug… run it again…" *(beat — green)* "…and she relaxes. She remembers what she was worried about, and now she knows it's okay."
 - **[`⌘⇧M` recap]** "And at the end of the day, she can tell me the story of what happened: what broke, what mattered, what got fixed."
 - **[close]** "Miro is what an AI assistant feels like when it's fast enough to be gentle. Gemma 4, on Cerebras. Her name is Miro."
