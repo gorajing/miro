@@ -144,6 +144,19 @@ function buildIntent(s: Situation, pose: MiroPose, bubble: string): Intent {
     ttlMs: TTL[s.event_type],
   };
 }
+function buildNoticeIntent(s: Situation): Intent {
+  const pose = NOTICE[s.event_type];
+  return {
+    kind: KIND[s.event_type],
+    goal: s.event_type === 'normal' ? s.rest_point : s.focus_point,
+    noticePose: pose,
+    arrivePose: pose,
+    bubble: '',
+    priority: PRIORITY[s.event_type],
+    startedAt: performance.now(),
+    ttlMs: TTL[s.event_type],
+  };
+}
 
 let intent: Intent = restIntent({ x: 0.88, y: 0.1 });
 let phase: Phase = 'dwell';
@@ -159,7 +172,11 @@ function adopt(c: Intent): void {
     phase = 'orient';
     phaseStart = now;
   } else if (c.kind === intent.kind) {
-    intent = { ...intent, goal: c.goal, bubble: c.bubble, startedAt: now }; // same goal continuing — refresh, no re-orient
+    intent = { ...intent, ...c, startedAt: now }; // same goal continuing — refresh, no re-orient
+    if (phase === 'dwell') {
+      setPose(c.arrivePose);
+      if (c.bubble) setBubble(c.bubble, c.arrivePose);
+    }
   }
   // else: weaker + different while committed → ignore (this is the anti-twitch hysteresis)
 }
@@ -385,9 +402,15 @@ async function react(forced = false): Promise<void> {
     if (!newOne && !(forced && isEventful(s))) return;
     lastSig = signature(s);
     drowse = awake(performance.now()); // a real event wakes her — reset the calm clock (pose flows via the intent)
+    if (isEventful(s)) {
+      setPose(NOTICE[s.event_type]); // visible "I saw that" immediately after Retina, before the pack finishes.
+      lastRest = s.rest_point;
+      adopt(buildNoticeIntent(s));
+    }
 
     let swarm: SwarmOutput = { results: {}, metrics: { calls: 0, maxTotalTime: 0, tps: 0 } };
-    if (s.recommended_swarm_tier !== 'none') swarm = await runSwarm(s, s.recommended_swarm_tier, 'cerebras', state.openConcern);
+    const tier = isEventful(s) && s.recommended_swarm_tier === 'none' ? 'sniff' : s.recommended_swarm_tier;
+    if (tier !== 'none') swarm = await runSwarm(s, tier, 'cerebras', state.openConcern);
 
     const prevConcern = state.openConcern;
     state = reduce(state, s, swarm);
@@ -412,8 +435,9 @@ async function react(forced = false): Promise<void> {
 
 // Ambient watch: only spends tokens when the screen changed (Curl Up), with a cooldown
 // (at most one reaction per ~4s — RPM-safe, less twitch) and a backoff after failures.
-const MIN_GAP_MS = 3000;
+const MIN_GAP_MS = 900;
 const STUCK_MS = 15000; // a read should never take this long — if it does, force-unstick so she can never freeze
+const WATCH_INTERVAL_MS = 500;
 window.setInterval(() => {
   const now = performance.now();
   if (running && now - runningSince > STUCK_MS) { // watchdog: self-heal a wedged read (hung body, etc.)
@@ -422,7 +446,7 @@ window.setInterval(() => {
     backoffUntil = now + 2000;
   }
   if (!running && isCapturing() && now > backoffUntil && now - lastReactAt > MIN_GAP_MS && hasChanged()) void react();
-}, 1500);
+}, WATCH_INTERVAL_MS);
 
 // Click-through everywhere except over Miro's body. Grab + drag her to reposition her.
 let interactive = false;
